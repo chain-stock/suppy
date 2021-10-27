@@ -1,0 +1,9 @@
+[run]
+branch=true
+
+[html]
+directory = tests/results/htmlcov
+title = Coverage chainstock-simulation
+
+[xml]
+output = tests/results/coverage.xml

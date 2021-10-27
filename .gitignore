@@ -1,0 +1,12 @@
+.DS_Store
+.idea/
+venv/
+.py[co]
+__pycache__/
+.tox/
+.coverage
+tests/results/
+dist/
+*.egg-info/
+tests/coverage.xml
+*/coverage.xml

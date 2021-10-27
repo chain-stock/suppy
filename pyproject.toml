@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "chainstock-simulation"
+version = "0.1.0"
+
+description = ""
+authors = ["Luuk Gijben <l.gijben@chain-stock.com>",]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^1.3.4"
+networkx = "^2.6.3"
+simplejson = "^3.17.5"
+
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = "poetry.masonry.api"
