@@ -10,3 +10,5 @@ dist/
 *.egg-info/
 tests/coverage.xml
 */coverage.xml
+.scannerwork
+pylint-report.txt

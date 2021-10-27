@@ -29,5 +29,67 @@ jobs:
 
     - name: Test with tox
       run: |
-        pip install tox
-        tox
+        pip install tox poetry
+        tox -e py39,pylint,security
+
+    - name: Correct coverage report for SonarCloud scan
+      run: sed -i 's?/home/runner/work/chainstock-simulation/chainstock-simulation?\.?g' tests/results/coverage.xml
+      if: always()
+
+    - name: Upload python test results
+      uses: actions/upload-artifact@v2.2.4
+      if: always()
+      with:
+        name: python-junit
+        path: tests/results/junit.xml
+
+    - name: Upload python coverage report
+      uses: actions/upload-artifact@v2.2.4
+      if: always()
+      with:
+        name: python-coverage
+        path: tests/results/coverage.xml
+
+    - name: Upload pylint report
+      uses: actions/upload-artifact@v2.2.4
+      if: always()
+      with:
+        name: pylint
+        path: pylint-report.txt
+
+  sonar:
+    name: Run SonarCloud Scan
+    runs-on: ubuntu-latest
+    needs: [test]
+    timeout-minutes: 5
+    if: always()
+
+    steps:
+    - uses: actions/checkout@v2.3.5
+    - run: |
+        git fetch --prune --unshallow
+
+    - name: Download junit report
+      uses: actions/download-artifact@v2
+      with:
+        name: python-junit
+        path: tests/results
+
+    - name: Download python coverage report
+      uses: actions/download-artifact@v2
+      with:
+        name: python-coverage
+        path: tests/results
+
+    - name: Download pylint report
+      uses: actions/download-artifact@v2
+      with:
+        name: pylint
+        path: .
+
+    - name: SonarCloud Scan
+      uses: sonarsource/sonarcloud-github-action@v1.6
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      if: always()
