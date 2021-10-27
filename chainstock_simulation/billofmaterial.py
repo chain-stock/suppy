@@ -1,32 +1,31 @@
+from typing import TextIO, Union
+
 import networkx as nx
 import pandas as pd
 import simplejson as json
 
-from typing import Union, TextIO
-
 
 class BillOfMaterialGraph(nx.DiGraph):
-
-
     def __init__(
-            self, file=None, data=None,
-            sales_data=None, stock_data=None,
-            lead_time_data=None,
-            safety_stock_data=None,
-            reorder_point_data=None,
-            **attr
+        self,
+        file=None,
+        data=None,
+        sales_data=None,
+        stock_data=None,
+        lead_time_data=None,
+        safety_stock_data=None,
+        reorder_point_data=None,
+        **attr
     ):
         super(BillOfMaterialGraph, self).__init__()
         if data is not None:
             self.from_json(data=data)
-        elif file is not None and file.lower().endswith('.json'):
+        elif file is not None and file.lower().endswith(".json"):
             self.from_json(file=file)
-        elif file is not None and file.lower().endswith(('.xlsx', '.xls')):
+        elif file is not None and file.lower().endswith((".xlsx", ".xls")):
             self.from_excel(file=file)
         else:
-            raise AttributeError(
-                "Please provide a network by data or by file."
-            )
+            raise AttributeError("Please provide a network by data or by file.")
 
         if not (safety_stock_data or reorder_point_data):
             raise AttributeError(
@@ -68,7 +67,6 @@ class BillOfMaterialGraph(nx.DiGraph):
                 if d:
                     d["reorder_point"] = reorder_point
 
-
     def from_json(self, file=None, data: Union[str, list, dict, TextIO] = None):
         """
         Instantiate self from (json) data
@@ -91,18 +89,23 @@ class BillOfMaterialGraph(nx.DiGraph):
         self.clear()
 
         for node in data:
-            self.add_node(node['id'], **node['data'])
-            if node.get('adjacencies') is not None:
-                for adj in node['adjacencies']:
-                    self.add_edge(node['id'], adj['item_to'], **adj['data'])
+            self.add_node(node["id"], **node["data"])
+            if node.get("adjacencies") is not None:
+                for adj in node["adjacencies"]:
+                    self.add_edge(node["id"], adj["item_to"], **adj["data"])
 
         for d_str in self.nodes:
             if "customer_data" in self.nodes[d_str].keys():
-                self.nodes[d_str]["e_demand"] = self.nodes[d_str]["customer_data"].pop("e_demand")
-                self.nodes[d_str]["s_demand"] = self.nodes[d_str]["customer_data"].pop("s_demand")
-                self.nodes[d_str]["target"] = self.nodes[d_str]["customer_data"].pop("target_service_level")
+                self.nodes[d_str]["e_demand"] = self.nodes[d_str]["customer_data"].pop(
+                    "e_demand"
+                )
+                self.nodes[d_str]["s_demand"] = self.nodes[d_str]["customer_data"].pop(
+                    "s_demand"
+                )
+                self.nodes[d_str]["target"] = self.nodes[d_str]["customer_data"].pop(
+                    "target_service_level"
+                )
                 self.nodes[d_str].pop("customer_data")
-
 
     def from_excel(self, file):
         """
@@ -112,71 +115,78 @@ class BillOfMaterialGraph(nx.DiGraph):
         """
         df_relations = pd.read_excel(
             file,
-            sheet_name='Relation input',
+            sheet_name="Relation input",
             usecols=[
-                'Item code',
-                'Succesor Item code',
-                'Number',
+                "Item code",
+                "Succesor Item code",
+                "Number",
             ],
             converters={
-                'Item code': str,
-                'Succesor Item code': str,
-                'Number': int,
+                "Item code": str,
+                "Succesor Item code": str,
+                "Number": int,
             },
         )
         df_items = pd.read_excel(
             file,
-            sheet_name='Item input',
+            sheet_name="Item input",
             converters={
-                'Item code': str,
-                'EL': int,
-                'AddValue': float,
-                'RevPeriod': int,
-                'LotSize': float,
+                "Item code": str,
+                "EL": int,
+                "AddValue": float,
+                "RevPeriod": int,
+                "LotSize": float,
             },
             usecols=["Item code", "EL", "AddValue", "RevPeriod", "LotSize"],
         )
         df_customers = pd.read_excel(
             file,
-            sheet_name='Item customer input',
+            sheet_name="Item customer input",
             converters={
-                'Item code': str,
-                'ED': float,
-                'SD': float,
-                'TargetP2': float,
+                "Item code": str,
+                "ED": float,
+                "SD": float,
+                "TargetP2": float,
             },
             usecols=["Item code", "ED", "SD", "TargetP2"],
         )
 
-        df_items = df_items.rename(columns={
-            "EL": "e_lead_time",
-            "AddValue": "added_value",
-            "RevPeriod": "review_period",
-            "LotSize": "order_quantity",
-        })
+        df_items = df_items.rename(
+            columns={
+                "EL": "e_lead_time",
+                "AddValue": "added_value",
+                "RevPeriod": "review_period",
+                "LotSize": "order_quantity",
+            }
+        )
 
-        df_customers = df_customers.rename(columns={
-            "ED": "e_demand",
-            "SD": "s_demand",
-            "TargetP2": "target",
-        })
+        df_customers = df_customers.rename(
+            columns={
+                "ED": "e_demand",
+                "SD": "s_demand",
+                "TargetP2": "target",
+            }
+        )
 
-        df_relations = df_relations.rename(columns={
-            "Number": "number",
-        })
+        df_relations = df_relations.rename(
+            columns={
+                "Number": "number",
+            }
+        )
 
-        df_items_dict = df_items.set_index('Item code').to_dict('Index')
-        df_customers_dict = df_customers.set_index('Item code').to_dict('Index')
+        df_items_dict = df_items.set_index("Item code").to_dict("Index")
+        df_customers_dict = df_customers.set_index("Item code").to_dict("Index")
 
         for item_code, values in df_customers_dict.items():
             df_items_dict[item_code].update(values)
 
-        self.add_nodes_from([
-            (key, value_dict) for key, value_dict in df_items_dict.items()
-        ])
+        self.add_nodes_from(
+            [(key, value_dict) for key, value_dict in df_items_dict.items()]
+        )
 
-        self.add_weighted_edges_from([tuple(x) for x in df_relations.to_numpy()], weight='Number')
-
+        self.add_weighted_edges_from(
+            [tuple(x) for x in df_relations.to_numpy()], weight="Number"
+        )
 
     def set_llc(self, k_str):
 
