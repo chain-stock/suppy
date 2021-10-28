@@ -6,17 +6,7 @@ import simplejson as json
 
 
 class BillOfMaterialGraph(nx.DiGraph):
-    def __init__(
-        self,
-        file=None,
-        data=None,
-        sales_data=None,
-        stock_data=None,
-        lead_time_data=None,
-        safety_stock_data=None,
-        reorder_point_data=None,
-        **attr
-    ):
+    def __init__(self, file=None, data=None, auxiliary_data=dict(), **attr):
         super(BillOfMaterialGraph, self).__init__()
         if data is not None:
             self.from_json(data=data)
@@ -27,45 +17,27 @@ class BillOfMaterialGraph(nx.DiGraph):
         else:
             raise AttributeError("Please provide a network by data or by file.")
 
-        if not (safety_stock_data or reorder_point_data):
+        if not (
+            "safety_stock_queue" in auxiliary_data.keys()
+            or "reorder_point_queue" in auxiliary_data.keys()
+        ):
             raise AttributeError(
-                "Please provide either safety stocks or reorder points."
+                "Please provide either a safety stock or reorder point queue."
             )
+        else:
+            self.load_data(data=auxiliary_data)
 
         nx.set_node_attributes(self, -1, "llc")
         for d_str in self.nodes:
             if self.out_degree(d_str) == 0:
                 self.set_llc(d_str)
 
-        if sales_data:
-            for item_code, sales_queueu in sales_data.items():
+    def load_data(self, data):
+        for data_type, _data in data.items():
+            for item_code, data_instance in _data.items():
                 d = self.nodes.get(item_code, None)
-                if d:
-                    d["sales_queue"] = sales_queueu
-
-        if stock_data:
-            for item_code, stock in stock_data.items():
-                d = self.nodes.get(item_code, None)
-                if d:
-                    d["stock"] = stock
-
-        if lead_time_data:
-            for item_code, lead_time_queueu in lead_time_data.items():
-                d = self.nodes.get(item_code, None)
-                if d:
-                    d["lead_time_queue"] = lead_time_queueu
-
-        if safety_stock_data:
-            for item_code, safety_stock in safety_stock_data.items():
-                d = self.nodes.get(item_code, None)
-                if d:
-                    d["safety_stock"] = safety_stock
-
-        if reorder_point_data:
-            for item_code, reorder_point in reorder_point_data.items():
-                d = self.nodes.get(item_code, None)
-                if d:
-                    d["reorder_point"] = reorder_point
+                if isinstance(d, dict):
+                    d[data_type] = data_instance
 
     def from_json(self, file=None, data: Union[str, list, dict, TextIO] = None):
         """
@@ -185,7 +157,7 @@ class BillOfMaterialGraph(nx.DiGraph):
         )
 
         self.add_weighted_edges_from(
-            [tuple(x) for x in df_relations.to_numpy()], weight="Number"
+            [tuple(x) for x in df_relations.to_numpy()], weight="number"
         )
 
     def set_llc(self, k_str):
