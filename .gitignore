@@ -9,6 +9,8 @@ tests/results/
 dist/
 *.egg-info/
 tests/coverage.xml
+tests/htmlcov
+tests/tests
 */coverage.xml
 .scannerwork
 pylint-report.txt
