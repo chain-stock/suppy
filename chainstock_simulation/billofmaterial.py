@@ -4,6 +4,8 @@ import networkx as nx
 import pandas as pd
 import simplejson as json
 
+from .utils import update_pipeline
+
 
 class BillOfMaterialGraph(nx.DiGraph):
     def __init__(self, file=None, data=None, auxiliary_data=dict(), **attr):
@@ -175,3 +177,100 @@ class BillOfMaterialGraph(nx.DiGraph):
 
             echelon_nr += 1
             echelon = list(set(echelon_next))
+
+    def initialize_simulation(self):
+        data_types = [
+            "safety_stock",
+            "reorder_point",
+        ]
+
+        # case specific data, to be removed
+        for data_type in data_types:
+            for d_str in self.nodes():
+                queue = self.nodes[d_str].get(f"{data_type}_queue", dict())
+                value = queue.get(0, None)
+                if value:
+                    self.nodes[d_str][data_type] = value
+
+        # mandatory generic data
+        for d_str in self.nodes():
+            if not self.nodes[d_str].get("pipeline", None):
+                self.nodes[d_str]["pipeline"] = dict()
+
+            if "sales" in self.nodes[d_str].keys():
+                self.nodes[d_str]["customer"] = True
+                if not self.nodes[d_str].get("backorder_quantity", None):
+                    self.nodes[d_str]["backorder_quantity"] = 0
+            else:
+                self.nodes[d_str]["customer"] = False
+
+    def assemble(self, d_str):
+
+        d = self.nodes[d_str]
+        feasible = min(
+            [
+                int(d["stock"][c_str] / self.edges[(c_str, d_str)]["number"])
+                for c_str in self.predecessors(d_str)
+            ]
+        )
+
+        for c_str in self.predecessors(d_str):
+            d["stock"][c_str] -= feasible * self.edges[(c_str, d_str)]["number"]
+        d["stock"][d_str] += feasible
+
+    def satisfy_backorders(self, d_str):
+
+        d = self.nodes[d_str]
+        if "backorder_quantity" in d.keys():
+            feasible = min(d["stock"][d_str], d["backorder_quantity"])
+            d["backorder_quantity"] -= feasible
+            d["stock"][d_str] -= feasible
+
+    def satisfy_sales(self, d_str, t):
+
+        d = self.nodes[d_str]
+
+        sales = d["sales"].pop(t, None)
+        if sales:
+            feasible = min(d["stock"][d_str], sales)
+            d["stock"][d_str] -= feasible
+
+            # is assumed to exist, set on sim init
+            d["backorder_quantity"] += sales - feasible
+
+    def simulate(self, max_time):
+
+        self.initialize_simulation()
+
+        t = 1
+        while t <= max_time:
+
+            for d_str in self.nodes:
+                # move pipeline
+                d = self.nodes[d_str]
+                d["pipeline"], receipts = update_pipeline(d["pipeline"])
+
+                # accept receipts
+                for receipt in receipts:
+                    d["stock"][receipt["sku_code"]] += receipt["quantity"]
+
+            # assemble / produce
+            for d_str in self.nodes:
+                self.assemble(d_str)
+
+            # satisfy backorders
+            for d_str in self.nodes:
+                self.satisfy_backorders(d_str)
+
+            # satisfy sales
+            for d_str in self.nodes:
+                # this should be refactored so we can explicitely
+                # set customer nodes
+                if "sales" in self.nodes[d_str].keys():
+                    self.satisfy_sales(d_str)
+
+            # for llc in range(max(llc)):
+            #     generate order releases (based on downstream demand, requires shortage allocation)
+            #     generate orders (for upstream nodes / suppliers, based on controls)
+
+            t += 1
