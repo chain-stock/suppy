@@ -199,3 +199,264 @@ def test_import_auxiliary_data():
     assert bill_of_material.nodes["A"]["lead_time_queue"] == [2]
     assert bill_of_material.nodes["A"]["safety_stock_queue"] == {0: 5}
     assert bill_of_material.nodes["A"]["reorder_point_queue"] == {0: 12}
+
+
+def test_initialize_simulation():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {},
+                "adjacencies": {},
+            }
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 5}},
+            "reorder_point_queue": {"A": {0: 12}},
+        },
+    )
+
+    bill_of_material.initialize_simulation()
+
+    assert bill_of_material.nodes["A"]["safety_stock"] == 5
+    assert bill_of_material.nodes["A"]["reorder_point"] == 12
+
+
+def test_assemble():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"stock": {"A": 100, "B": 20, "C": 2}},
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {},
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+            {
+                "id": "C",
+                "data": {},
+                "adjacencies": [{"data": {"number": 2}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.assemble("A")
+    bill_of_material.nodes["A"]["stock"] = {"A": 101, "B": 19, "C": 0}
+
+
+def test_satisfy_backorders_feasible():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"backorder_quantity": 40, "stock": {"A": 100, "B": 20}},
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.satisfy_backorders("A")
+
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 0
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 60, "B": 20}
+
+
+def test_satisfy_backorders_infeasible():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"backorder_quantity": 140, "stock": {"A": 100, "B": 20}},
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.satisfy_backorders("A")
+
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 40
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 0, "B": 20}
+
+
+def test_satisfy_backorders_none():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {"id": "A", "data": {"stock": {"A": 100, "B": 20}}, "adjacencies": {}},
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.satisfy_backorders("A")
+
+    assert "backorder_quantity" not in bill_of_material.nodes["A"].keys()
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 100, "B": 20}
+
+
+def test_satisfy_sales_feasible():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "backorder_quantity": 0,
+                    "sales": {1: 10},
+                    "stock": {"A": 100, "B": 20},
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.satisfy_sales("A", 1)
+
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 0
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 90, "B": 20}
+
+
+def test_satisfy_sales_infeasible():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "backorder_quantity": 0,
+                    "sales": {1: 140},
+                    "stock": {"A": 100, "B": 20},
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.satisfy_sales("A", 1)
+
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 40
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 0, "B": 20}
+    assert bill_of_material.nodes["A"]["sales"] == {}
+
+
+def test_satisfy_sales_none():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "backorder_quantity": 0,
+                    "sales": {2: 10},
+                    "stock": {"A": 100, "B": 20},
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.satisfy_sales("A", 1)
+
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 0
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 100, "B": 20}
+
+
+def test_initialize_simulation_customer():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "sales": {2: 10},
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.initialize_simulation()
+
+    assert bill_of_material.nodes["A"]["customer"]
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 0
+
+
+def test_initialize_simulation_customer_backorder():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "backorder_quantity": 7,
+                    "sales": {2: 10},
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.initialize_simulation()
+
+    assert bill_of_material.nodes["A"]["customer"]
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 7
+
+
+def test_initialize_simulation_pipeline():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "pipeline": [{"sku_code": "A", "eta": 9, "quantity": 1}],
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.initialize_simulation()
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "A", "eta": 9, "quantity": 1}
+    ]
+
+
+def test_initialize_simulation_not_customer():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {"id": "A", "data": {}, "adjacencies": {}},
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.initialize_simulation()
+
+    assert not bill_of_material.nodes["A"]["customer"]
