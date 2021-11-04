@@ -4,6 +4,8 @@ import networkx as nx
 import pandas as pd
 import simplejson as json
 
+from .control import r_s_q
+from .order_release import fractional
 from .utils import update_pipeline
 
 
@@ -238,6 +240,36 @@ class BillOfMaterialGraph(nx.DiGraph):
             # is assumed to exist, set on sim init
             d["backorder_quantity"] += sales - feasible
 
+    def release_orders(self, p_str, order_release):
+
+        p = self.nodes[p_str]
+        for q_str, orl in order_release.items():
+            q = self.nodes[q_str]
+
+            # decide lead time
+            if q.get("lead_time_queue", []):
+                lead_time = q["lead_time_queue"].pop(0)
+            else:
+                lead_time = q["e_lead_time"]
+
+            # decide actual feasible release quantity
+            release_quantity = min(orl, p["stock"][p_str])
+
+            # release order
+            q["pipeline"].append(
+                {
+                    "sku_code": p_str,
+                    # we assume the order is released at the end of the day
+                    "eta": lead_time + 1,
+                    "quantity": release_quantity,
+                }
+            )
+
+            # update stock according to the release
+            p["stock"][p_str] -= release_quantity
+            # update outstanding orders according to the release
+            p["orders"][q_str] -= release_quantity
+
     def simulate(self, max_time):
 
         self.initialize_simulation()
@@ -269,7 +301,17 @@ class BillOfMaterialGraph(nx.DiGraph):
                 if "sales" in self.nodes[d_str].keys():
                     self.satisfy_sales(d_str)
 
-            # for llc in range(max(llc)):
+            # starting at the end nodes, moving upstream
+            for llc in range(max([self.nodes[d_str]["llc"] for d_str in self.nodes])):
+                for d_str in (x for x in self.nodes if self.nodes[d_str]["llc"] == llc):
+                    d = self.nodes[d_str]
+                    # create order release
+                    order_release = fractional(orders=d["orders"], stock=d["stock"])
+                    # release orders
+                    self.release_orders(sku_code=d_str, order_release=order_release)
+                    # create new orders
+                    orders = r_s_q(self.nodes[d_str], t)
+
             #     generate order releases (based on downstream demand, requires shortage allocation)
             #     generate orders (for upstream nodes / suppliers, based on controls)
 
