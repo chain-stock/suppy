@@ -460,3 +460,103 @@ def test_initialize_simulation_not_customer():
     bill_of_material.initialize_simulation()
 
     assert not bill_of_material.nodes["A"]["customer"]
+
+
+def test_release_orders():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"e_lead_time": 10, "pipeline": []},
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "stock": {"B": 20},
+                    "orders": {"A": 20},
+                },
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    order_release = {"A": 20}
+    bill_of_material.release_orders(p_str="B", order_release=order_release)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "B", "eta": 11, "quantity": 20}
+    ]
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
+    assert bill_of_material.nodes["B"]["orders"] == {"A": 0}
+
+
+def test_release_orders_queue():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "e_lead_time": 10,
+                    "pipeline": [],
+                    "lead_time_queue": [7, 8, 9],
+                },
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "stock": {"B": 20},
+                    "orders": {"A": 20},
+                },
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    order_release = {"A": 20}
+    bill_of_material.release_orders(p_str="B", order_release=order_release)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "B", "eta": 8, "quantity": 20}
+    ]
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
+    assert bill_of_material.nodes["B"]["orders"] == {"A": 0}
+
+
+def test_release_orders_infeasible():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"e_lead_time": 10, "pipeline": []},
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "stock": {"B": 20},
+                    "orders": {"A": 21},
+                },
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    order_release = {"A": 21}
+    bill_of_material.release_orders(p_str="B", order_release=order_release)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "B", "eta": 11, "quantity": 20}
+    ]
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
+    assert bill_of_material.nodes["B"]["orders"] == {"A": 1}
