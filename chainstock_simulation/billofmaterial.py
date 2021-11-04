@@ -206,15 +206,59 @@ class BillOfMaterialGraph(nx.DiGraph):
             else:
                 self.nodes[d_str]["customer"] = False
 
-    def assemble(self, d_str):
+    def inventory(self, d_str):
+        # create inventory dictionary
+        inventory = {d_str: 0}
+        for c_str in self.predecessors(d_str):
+            inventory[c_str] = 0
 
-        d = self.nodes[d_str]
+        # aggregate pipeline in to total inventory
+        for receipt in self.nodes[d_str]["pipeline"]:
+            inventory[receipt["sku_code"]] += receipt["quantity"]
+
+        # aggregate outstanding orders in to total inventory
+        for c_str in inventory.keys():
+            inventory[c_str] += self.nodes[c_str]["orders"].get(d_str, 0)
+            inventory[c_str] += self.nodes[d_str]["stock"].get(c_str, 0)
+
+        # reduce d_str by any outstanding backorders
+        inventory[d_str] -= self.nodes[d_str].get("backorder_quantity", 0)
+        # reduce d_str by any outstanding orders
+        inventory[d_str] -= sum(self.nodes[d_str]["orders"].values())
+
+        return inventory
+
+    def assemble_feasible_inventory(self, d_str):
+        """
+        :param d_str: sku code
+        :return: number of items that can be created from items currently in transit
+        """
+        # determine total inventory
+        inventory = self.inventory(d_str)
+
+        # compute feasible number of items creatable from inventory
         feasible = min(
             [
-                int(d["stock"][c_str] / self.edges[(c_str, d_str)]["number"])
+                int(inventory[c_str] / self.edges[(c_str, d_str)]["number"])
                 for c_str in self.predecessors(d_str)
             ]
         )
+        return feasible
+
+    def assemble_feasible_stock(self, d_str, stock):
+        feasible = min(
+            [
+                int(stock[c_str] / self.edges[(c_str, d_str)]["number"])
+                for c_str in self.predecessors(d_str)
+            ]
+        )
+
+        return feasible
+
+    def assemble(self, d_str):
+
+        d = self.nodes[d_str]
+        feasible = self.assemble_feasible_stock(d_str, stock=d["stock"])
 
         for c_str in self.predecessors(d_str):
             d["stock"][c_str] -= feasible * self.edges[(c_str, d_str)]["number"]
@@ -270,6 +314,12 @@ class BillOfMaterialGraph(nx.DiGraph):
             # update outstanding orders according to the release
             p["orders"][q_str] -= release_quantity
 
+    def create_orders(self, d_str, order_quantity):
+        for c_str in self.predecessors(d_str):
+            self.nodes[c_str]["orders"][d_str] += (
+                order_quantity * self.edges[(c_str, d_str)]["number"]
+            )
+
     def simulate(self, max_time):
 
         self.initialize_simulation()
@@ -308,9 +358,12 @@ class BillOfMaterialGraph(nx.DiGraph):
                     # create order release
                     order_release = fractional(orders=d["orders"], stock=d["stock"])
                     # release orders
-                    self.release_orders(sku_code=d_str, order_release=order_release)
+                    self.release_orders(p_str=d_str, order_release=order_release)
                     # create new orders
-                    orders = r_s_q(self.nodes[d_str], t)
+                    order_quantity = r_s_q(
+                        self.nodes[d_str], self.assemble_feasible_inventory(d_str), t
+                    )
+                    self.create_orders(d_str, order_quantity)
 
             #     generate order releases (based on downstream demand, requires shortage allocation)
             #     generate orders (for upstream nodes / suppliers, based on controls)

@@ -222,6 +222,34 @@ def test_initialize_simulation():
     assert bill_of_material.nodes["A"]["reorder_point"] == 12
 
 
+def test_assemble_feasible_stock():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {},
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {},
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+            {
+                "id": "C",
+                "data": {},
+                "adjacencies": [{"data": {"number": 2}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+    stock = {"A": 100, "B": 20, "C": 2}
+
+    assert bill_of_material.assemble_feasible_stock("A", stock) == 1
+
+
 def test_assemble():
     bill_of_material = BillOfMaterialGraph(
         data=[
@@ -560,3 +588,108 @@ def test_release_orders_infeasible():
     ]
     assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
     assert bill_of_material.nodes["B"]["orders"] == {"A": 1}
+
+
+def test_inventory():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "stock": {"A": 100, "B": 10},
+                    "backorder_quantity": 3,
+                    "orders": {"C": 7, "D": 7},
+                    "pipeline": [
+                        {"sku_code": "A", "eta": 1, "quantity": 10},
+                        {"sku_code": "A", "eta": 8, "quantity": 10},
+                        {"sku_code": "B", "eta": 9, "quantity": 10},
+                    ],
+                },
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "stock": {"B": 10},
+                    "orders": {"A": 20},
+                    "pipeline": [],
+                },
+                "adjacencies": [{"data": {"number": 2}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    inventory = bill_of_material.inventory("A")
+    assert inventory == {"A": 103, "B": 40}
+
+    inventory = bill_of_material.inventory("B")
+    assert inventory == {"B": -10}
+
+
+def test_assemble_feasible_inventory():
+
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "stock": {"A": 100, "B": 10},
+                    "backorder_quantity": 3,
+                    "orders": {"C": 7, "D": 7},
+                    "pipeline": [
+                        {"sku_code": "A", "eta": 1, "quantity": 10},
+                        {"sku_code": "A", "eta": 8, "quantity": 10},
+                        {"sku_code": "B", "eta": 9, "quantity": 10},
+                    ],
+                },
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "stock": {"B": 10},
+                    "orders": {"A": 20},
+                    "pipeline": [],
+                },
+                "adjacencies": [{"data": {"number": 2}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    assert bill_of_material.assemble_feasible_inventory("A") == 20
+
+
+def test_create_orders():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {},
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {"orders": {"A": 1}},
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+            {
+                "id": "C",
+                "data": {"orders": {"A": 0}},
+                "adjacencies": [{"data": {"number": 2}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.create_orders("A", 10)
+
+    assert bill_of_material.nodes["B"]["orders"]["A"] == 11
+    assert bill_of_material.nodes["C"]["orders"]["A"] == 20
