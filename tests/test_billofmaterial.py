@@ -522,42 +522,6 @@ def test_release_orders():
     assert bill_of_material.nodes["B"]["orders"] == {"A": 0}
 
 
-def test_release_orders_queue():
-    bill_of_material = BillOfMaterialGraph(
-        data=[
-            {
-                "id": "A",
-                "data": {
-                    "e_lead_time": 10,
-                    "pipeline": [],
-                    "lead_time_queue": [7, 8, 9],
-                },
-                "adjacencies": {},
-            },
-            {
-                "id": "B",
-                "data": {
-                    "stock": {"B": 20},
-                    "orders": {"A": 20},
-                },
-                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
-            },
-        ],
-        auxiliary_data={
-            "safety_stock_queue": {"A": {0: 1}},
-        },
-    )
-
-    order_release = {"A": 20}
-    bill_of_material.release_orders(p_str="B", order_release=order_release)
-
-    assert bill_of_material.nodes["A"]["pipeline"] == [
-        {"sku_code": "B", "eta": 7, "quantity": 20}
-    ]
-    assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
-    assert bill_of_material.nodes["B"]["orders"] == {"A": 0}
-
-
 def test_release_orders_infeasible():
     bill_of_material = BillOfMaterialGraph(
         data=[
@@ -695,6 +659,31 @@ def test_create_orders():
     assert bill_of_material.nodes["C"]["orders"]["A"] == 20
 
 
+def test_create_orders_supplier():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "pipeline": [{"sku_code": "A", "eta": 1, "quantity": 5}],
+                    "e_lead_time": 7,
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.create_orders("A", 10)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "A", "eta": 1, "quantity": 5},
+        {"sku_code": "A", "eta": 7, "quantity": 10},
+    ]
+
+
 def test_fetch_receipts():
 
     bill_of_material = BillOfMaterialGraph(
@@ -723,3 +712,44 @@ def test_fetch_receipts():
     assert bill_of_material.nodes["A"]["pipeline"] == [
         {"sku_code": "A", "eta": 8, "quantity": 10}
     ]
+
+
+def test_fetch_lead_time():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "e_lead_time": 10,
+                    "pipeline": [],
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    assert bill_of_material.fetch_lead_time("A") == 10
+
+
+def test_fetch_lead_time_queue():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "e_lead_time": 10,
+                    "pipeline": [],
+                    "lead_time_queue": [7, 8, 9],
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    assert bill_of_material.fetch_lead_time("A") == 7

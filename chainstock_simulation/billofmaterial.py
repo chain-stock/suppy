@@ -284,27 +284,28 @@ class BillOfMaterialGraph(nx.DiGraph):
             # is assumed to exist, set on sim init
             d["backorder_quantity"] += sales - feasible
 
+    def fetch_lead_time(self, d_str):
+        d = self.nodes[d_str]
+        if d.get("lead_time_queue", []):
+            lead_time = d["lead_time_queue"].pop(0)
+        else:
+            lead_time = d["e_lead_time"]
+        return lead_time
+
     def release_orders(self, p_str, order_release):
 
         p = self.nodes[p_str]
         for q_str, orl in order_release.items():
-            q = self.nodes[q_str]
-
-            # decide lead time
-            if q.get("lead_time_queue", []):
-                lead_time = q["lead_time_queue"].pop(0)
-            else:
-                lead_time = q["e_lead_time"]
-
-            # decide actual feasible release quantity
+            # don't allow releases larger than the available stock
             release_quantity = min(orl, p["stock"][p_str])
 
             # release order
-            q["pipeline"].append(
+            self.nodes[q_str]["pipeline"].append(
                 {
                     "sku_code": p_str,
-                    # we assume the order is released at the end of the day
-                    "eta": lead_time,
+                    # the order is released at the end of the day
+                    "eta": self.fetch_lead_time(q_str),
+                    # don't allow releases larger than the available stock
                     "quantity": release_quantity,
                 }
             )
@@ -315,9 +316,20 @@ class BillOfMaterialGraph(nx.DiGraph):
             p["orders"][q_str] -= release_quantity
 
     def create_orders(self, d_str, order_quantity):
-        for c_str in self.predecessors(d_str):
-            self.nodes[c_str]["orders"][d_str] += (
-                order_quantity * self.edges[(c_str, d_str)]["number"]
+        # if the sku has predecessors
+        if self.in_degree(d_str) > 0:
+            # create intercompany orders at predecessors
+            for c_str in self.predecessors(d_str):
+                self.nodes[c_str]["orders"][d_str] += (
+                    order_quantity * self.edges[(c_str, d_str)]["number"]
+                )
+        else:
+            self.nodes[d_str]["pipeline"].append(
+                {
+                    "sku_code": d_str,
+                    "eta": self.fetch_lead_time(d_str),
+                    "quantity": order_quantity,
+                }
             )
 
     def fetch_receipts(self, d_str):
