@@ -7,7 +7,9 @@ def test_update_pipeline():
         {"sku_code": "B", "eta": 1, "quantity": 5},
     ]
 
-    pipeline, receipts = utils.update_pipeline(pipeline)
+    pipeline = utils.update_pipeline(pipeline)
 
-    assert pipeline == [{"sku_code": "A", "eta": 9, "quantity": 1}]
-    assert receipts == [{"sku_code": "B", "eta": 0, "quantity": 5}]
+    assert pipeline == [
+        {"sku_code": "A", "eta": 9, "quantity": 1},
+        {"sku_code": "B", "eta": 0, "quantity": 5},
+    ]

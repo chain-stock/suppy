@@ -304,7 +304,7 @@ class BillOfMaterialGraph(nx.DiGraph):
                 {
                     "sku_code": p_str,
                     # we assume the order is released at the end of the day
-                    "eta": lead_time + 1,
+                    "eta": lead_time,
                     "quantity": release_quantity,
                 }
             )
@@ -320,52 +320,65 @@ class BillOfMaterialGraph(nx.DiGraph):
                 order_quantity * self.edges[(c_str, d_str)]["number"]
             )
 
-    def simulate(self, max_time):
+    def fetch_receipts(self, d_str):
 
+        receipts = []
+        for receipt in self.nodes[d_str]["pipeline"]:
+            if receipt["eta"] == 0:
+                receipts.append(receipt)
+
+        for receipt in receipts:
+            self.nodes[d_str]["stock"][receipt["sku_code"]] += receipt["quantity"]
+            self.nodes[d_str]["pipeline"].remove(receipt)
+
+    def simulate_period(self, t):
+        # accept receipts
+        for d_str in self.nodes:
+            self.fetch_receipts(d_str)
+
+        # assemble / produce
+        for d_str in self.nodes:
+            self.assemble(d_str)
+
+        # satisfy backorders
+        for d_str in self.nodes:
+            self.satisfy_backorders(d_str)
+
+        # satisfy sales
+        for d_str in self.nodes:
+            # this should be refactored so we can explicitely
+            # set customer nodes
+            if "sales" in self.nodes[d_str].keys():
+                self.satisfy_sales(d_str)
+
+        # move pipeline
+        for d_str in self.nodes:
+            d = self.nodes[d_str]
+            d["pipeline"] = update_pipeline(d["pipeline"])
+
+        # starting at the end nodes, moving upstream
+        for llc in range(max([self.nodes[d_str]["llc"] for d_str in self.nodes])):
+            for d_str in (x for x in self.nodes if self.nodes[d_str]["llc"] == llc):
+                d = self.nodes[d_str]
+                # create order release
+                order_release = fractional(orders=d["orders"], stock=d["stock"])
+                # release orders
+                self.release_orders(p_str=d_str, order_release=order_release)
+                # determine order size
+                order_quantity = r_s_q(
+                    self.nodes[d_str], self.assemble_feasible_inventory(d_str), t
+                )
+                # create new orders
+                self.create_orders(d_str, order_quantity)
+
+    def simulate(self, start_period=1, end_period=1):
+
+        # set basic required fields in case they are not
+        # supplied by the user.
         self.initialize_simulation()
 
         t = 1
-        while t <= max_time:
-
-            for d_str in self.nodes:
-                # move pipeline
-                d = self.nodes[d_str]
-                d["pipeline"], receipts = update_pipeline(d["pipeline"])
-
-                # accept receipts
-                for receipt in receipts:
-                    d["stock"][receipt["sku_code"]] += receipt["quantity"]
-
-            # assemble / produce
-            for d_str in self.nodes:
-                self.assemble(d_str)
-
-            # satisfy backorders
-            for d_str in self.nodes:
-                self.satisfy_backorders(d_str)
-
-            # satisfy sales
-            for d_str in self.nodes:
-                # this should be refactored so we can explicitely
-                # set customer nodes
-                if "sales" in self.nodes[d_str].keys():
-                    self.satisfy_sales(d_str)
-
-            # starting at the end nodes, moving upstream
-            for llc in range(max([self.nodes[d_str]["llc"] for d_str in self.nodes])):
-                for d_str in (x for x in self.nodes if self.nodes[d_str]["llc"] == llc):
-                    d = self.nodes[d_str]
-                    # create order release
-                    order_release = fractional(orders=d["orders"], stock=d["stock"])
-                    # release orders
-                    self.release_orders(p_str=d_str, order_release=order_release)
-                    # create new orders
-                    order_quantity = r_s_q(
-                        self.nodes[d_str], self.assemble_feasible_inventory(d_str), t
-                    )
-                    self.create_orders(d_str, order_quantity)
-
-            #     generate order releases (based on downstream demand, requires shortage allocation)
-            #     generate orders (for upstream nodes / suppliers, based on controls)
-
+        while t <= end_period:
+            # run the simulation for period t.
+            self.simulate_period(t=t)
             t += 1
