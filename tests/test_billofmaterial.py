@@ -516,7 +516,7 @@ def test_release_orders():
     bill_of_material.release_orders(p_str="B", order_release=order_release)
 
     assert bill_of_material.nodes["A"]["pipeline"] == [
-        {"sku_code": "B", "eta": 11, "quantity": 20}
+        {"sku_code": "B", "eta": 10, "quantity": 20}
     ]
     assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
     assert bill_of_material.nodes["B"]["orders"] == {"A": 0}
@@ -552,7 +552,7 @@ def test_release_orders_queue():
     bill_of_material.release_orders(p_str="B", order_release=order_release)
 
     assert bill_of_material.nodes["A"]["pipeline"] == [
-        {"sku_code": "B", "eta": 8, "quantity": 20}
+        {"sku_code": "B", "eta": 7, "quantity": 20}
     ]
     assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
     assert bill_of_material.nodes["B"]["orders"] == {"A": 0}
@@ -584,7 +584,7 @@ def test_release_orders_infeasible():
     bill_of_material.release_orders(p_str="B", order_release=order_release)
 
     assert bill_of_material.nodes["A"]["pipeline"] == [
-        {"sku_code": "B", "eta": 11, "quantity": 20}
+        {"sku_code": "B", "eta": 10, "quantity": 20}
     ]
     assert bill_of_material.nodes["B"]["stock"] == {"B": 0}
     assert bill_of_material.nodes["B"]["orders"] == {"A": 1}
@@ -693,3 +693,33 @@ def test_create_orders():
 
     assert bill_of_material.nodes["B"]["orders"]["A"] == 11
     assert bill_of_material.nodes["C"]["orders"]["A"] == 20
+
+
+def test_fetch_receipts():
+
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "stock": {"A": 10, "B": 0, "C": 3},
+                    "pipeline": [
+                        {"sku_code": "A", "eta": 0, "quantity": 8},
+                        {"sku_code": "B", "eta": 0, "quantity": 9},
+                        {"sku_code": "A", "eta": 8, "quantity": 10},
+                    ],
+                },
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.fetch_receipts("A")
+
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 18, "B": 9, "C": 3}
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "A", "eta": 8, "quantity": 10}
+    ]
