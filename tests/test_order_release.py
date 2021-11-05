@@ -7,7 +7,7 @@ def test_fractional_feasible():
         "B": 40,
     }
 
-    stock = 60
+    stock = 70
 
     order_release = orl.fractional(orders, stock)
 

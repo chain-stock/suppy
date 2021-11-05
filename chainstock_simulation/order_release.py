@@ -16,7 +16,8 @@ a list of dictionaries in the following format,
 def fractional(orders, stock):
 
     order_total = sum(orders.values())
-    shortage = order_total - stock
+    # shortage can not be negative
+    shortage = max(order_total - stock, 0)
 
     order_release = {}
     for q_str, order in orders.items():

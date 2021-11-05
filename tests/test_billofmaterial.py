@@ -218,6 +218,7 @@ def test_initialize_simulation():
 
     bill_of_material.initialize_simulation()
 
+    assert bill_of_material.nodes["A"]["pipeline"] == []
     assert bill_of_material.nodes["A"]["safety_stock"] == 5
     assert bill_of_material.nodes["A"]["reorder_point"] == 12
 
@@ -248,6 +249,28 @@ def test_assemble_feasible_stock():
     stock = {"A": 100, "B": 20, "C": 2}
 
     assert bill_of_material.assemble_feasible_stock("A", stock) == 1
+
+
+def test_assemble_feasible_stock_self():
+    """
+    Test for the determination of feasible number of items to be assembled from stock
+    where the items to be assembled are the sku itself.
+    """
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {},
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+    stock = {"A": 10}
+
+    assert bill_of_material.assemble_feasible_stock("A", stock) == 0
 
 
 def test_assemble():
@@ -626,7 +649,7 @@ def test_assemble_feasible_inventory():
         },
     )
 
-    assert bill_of_material.assemble_feasible_inventory("A") == 20
+    assert bill_of_material.assemble_feasible_inventory("A") == 123
 
 
 def test_create_orders():
@@ -682,6 +705,25 @@ def test_create_orders_supplier():
         {"sku_code": "A", "eta": 1, "quantity": 5},
         {"sku_code": "A", "eta": 7, "quantity": 10},
     ]
+
+
+def test_create_orders_none():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"pipeline": []},
+                "adjacencies": {},
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.create_orders("A", 0)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == []
 
 
 def test_fetch_receipts():
@@ -753,3 +795,105 @@ def test_fetch_lead_time_queue():
     )
 
     assert bill_of_material.fetch_lead_time("A") == 7
+
+
+def test_simulate_period():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {
+                    "llc": 0,
+                    "sales": {1: 10, 2: 10, 3: 10},
+                    "e_lead_time": 1,
+                    "stock": {"A": 15, "C": 5, "D": 0},
+                    "pipeline": [],
+                    "order_quantity": 30,
+                    "reorder_level": 25,
+                    "review_time": 1,
+                    "backorder_quantity": 0,
+                    "orders": {},
+                },
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "llc": 0,
+                    "sales": {1: 15, 2: 15, 3: 15},
+                    "e_lead_time": 2,
+                    "stock": {"B": 0, "D": 0},
+                    "pipeline": [{"sku_code": "D", "eta": 1, "quantity": 75}],
+                    "order_quantity": 25,
+                    "reorder_level": 40,
+                    "review_time": 1,
+                    "backorder_quantity": 5,
+                    "orders": {},
+                },
+                "adjacencies": [],
+            },
+            {
+                "id": "C",
+                "data": {
+                    "llc": 1,
+                    "e_lead_time": 3,
+                    "lead_time_queue": [3, 7],
+                    "stock": {"C": 200},
+                    "pipeline": [],
+                    "order_quantity": 150,
+                    "reorder_level": 20,
+                    "review_time": 1,
+                    "orders": {"A": 0},
+                },
+                "adjacencies": [{"data": {"number": 2}, "item_to": "A"}],
+            },
+            {
+                "id": "D",
+                "data": {
+                    "llc": 1,
+                    "e_lead_time": 4,
+                    "stock": {"D": 40},
+                    "pipeline": [{"sku_code": "D", "eta": 2, "quantity": 200}],
+                    "order_quantity": 200,
+                    "reorder_level": 20,
+                    "review_time": 2,
+                    "orders": {"A": 0, "B": 15},
+                },
+                "adjacencies": [
+                    {"data": {"number": 1}, "item_to": "A"},
+                    {"data": {"number": 3}, "item_to": "B"},
+                ],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    bill_of_material.simulate_period(1)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "C", "eta": 1, "quantity": 60},
+        {"sku_code": "D", "eta": 1, "quantity": 7},
+    ]
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 5, "C": 5, "D": 0}
+    assert bill_of_material.nodes["A"]["sales"] == {2: 10, 3: 10}
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 0
+
+    assert bill_of_material.nodes["B"]["pipeline"] == [
+        {"sku_code": "D", "eta": 0, "quantity": 75},
+        {"sku_code": "D", "eta": 2, "quantity": 33},
+    ]
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 0, "D": 0}
+    assert bill_of_material.nodes["B"]["sales"] == {2: 15, 3: 15}
+    assert bill_of_material.nodes["B"]["backorder_quantity"] == 20
+
+    assert bill_of_material.nodes["C"]["pipeline"] == []
+    assert bill_of_material.nodes["C"]["stock"] == {"C": 140}
+    assert bill_of_material.nodes["C"]["orders"] == {"A": 0}
+
+    assert bill_of_material.nodes["D"]["pipeline"] == [
+        {"sku_code": "D", "eta": 1, "quantity": 200},
+    ]
+    assert bill_of_material.nodes["D"]["stock"] == {"D": 0}
+    assert bill_of_material.nodes["D"]["orders"] == {"A": 23, "B": 132}
