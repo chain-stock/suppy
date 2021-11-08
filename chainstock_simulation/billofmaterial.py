@@ -197,7 +197,7 @@ class BillOfMaterialGraph(nx.DiGraph):
         # mandatory generic data
         for d_str in self.nodes():
             if not self.nodes[d_str].get("pipeline", None):
-                self.nodes[d_str]["pipeline"] = dict()
+                self.nodes[d_str]["pipeline"] = []
 
             if "sales" in self.nodes[d_str].keys():
                 self.nodes[d_str]["customer"] = True
@@ -237,21 +237,36 @@ class BillOfMaterialGraph(nx.DiGraph):
         inventory = self.inventory(d_str)
 
         # compute feasible number of items creatable from inventory
-        feasible = min(
-            [
-                int(inventory[c_str] / self.edges[(c_str, d_str)]["number"])
-                for c_str in self.predecessors(d_str)
-            ]
-        )
+        feasible = 0
+        # if intercompany sku
+        if self.in_degree(d_str) > 0:
+            feasible = min(
+                [
+                    int(inventory[c_str] / self.edges[(c_str, d_str)]["number"])
+                    for c_str in self.predecessors(d_str)
+                ]
+            )
+        # inventory should include stock of the sku itself
+        feasible += inventory[d_str]
+
         return feasible
 
     def assemble_feasible_stock(self, d_str, stock):
-        feasible = min(
-            [
-                int(stock[c_str] / self.edges[(c_str, d_str)]["number"])
-                for c_str in self.predecessors(d_str)
-            ]
-        )
+        # for intercompany skus
+        if self.in_degree(d_str) > 0:
+            feasible = min(
+                [
+                    int(stock[c_str] / self.edges[(c_str, d_str)]["number"])
+                    for c_str in self.predecessors(d_str)
+                ]
+            )
+        # for supplier skus
+        else:
+            feasible = 0
+
+        # the number of items that can be assembled is non-negative.
+        # this check should be unnecessary.
+        feasible = max(feasible, 0)
 
         return feasible
 
@@ -299,6 +314,11 @@ class BillOfMaterialGraph(nx.DiGraph):
             # don't allow releases larger than the available stock
             release_quantity = min(orl, p["stock"][p_str])
 
+            # if nothing is being released, move to the next item.
+            # this avoids creating a zero pipeline entry
+            if release_quantity <= 0:
+                continue
+
             # release order
             self.nodes[q_str]["pipeline"].append(
                 {
@@ -316,6 +336,11 @@ class BillOfMaterialGraph(nx.DiGraph):
             p["orders"][q_str] -= release_quantity
 
     def create_orders(self, d_str, order_quantity):
+
+        # if a non-positive order quantity is requested, do nothing.
+        if order_quantity <= 0:
+            return
+
         # if the sku has predecessors
         if self.in_degree(d_str) > 0:
             # create intercompany orders at predecessors
@@ -358,10 +383,8 @@ class BillOfMaterialGraph(nx.DiGraph):
 
         # satisfy sales
         for d_str in self.nodes:
-            # this should be refactored so we can explicitely
-            # set customer nodes
             if "sales" in self.nodes[d_str].keys():
-                self.satisfy_sales(d_str)
+                self.satisfy_sales(d_str, t)
 
         # move pipeline
         for d_str in self.nodes:
@@ -369,19 +392,19 @@ class BillOfMaterialGraph(nx.DiGraph):
             d["pipeline"] = update_pipeline(d["pipeline"])
 
         # starting at the end nodes, moving upstream
-        for llc in range(max([self.nodes[d_str]["llc"] for d_str in self.nodes])):
-            for d_str in (x for x in self.nodes if self.nodes[d_str]["llc"] == llc):
+        for llc in range(max([self.nodes[d_str]["llc"] for d_str in self.nodes]) + 1):
+            for d_str in (x for x in self.nodes if self.nodes[x]["llc"] == llc):
                 d = self.nodes[d_str]
-                # create order release
-                order_release = fractional(orders=d["orders"], stock=d["stock"])
-                # release orders
-                self.release_orders(p_str=d_str, order_release=order_release)
                 # determine order size
                 order_quantity = r_s_q(
                     self.nodes[d_str], self.assemble_feasible_inventory(d_str), t
                 )
                 # create new orders
                 self.create_orders(d_str, order_quantity)
+                # create order release
+                order_release = fractional(orders=d["orders"], stock=d["stock"][d_str])
+                # release orders
+                self.release_orders(p_str=d_str, order_release=order_release)
 
     def simulate(self, start_period=1, end_period=1):
 
