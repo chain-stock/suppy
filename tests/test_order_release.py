@@ -34,3 +34,22 @@ def test_fractional_infeasible():
         "A": 3,
         "B": 4,
     }
+
+
+def test_fractional_no_order():
+    """
+    Test whereby the sum of orders requested is larger than the available stock.
+    Furthermore, the rounding causes the initial sum of released orders to be larger than the available stock.
+    """
+    orders = {
+        "A": 0,
+        "B": 0,
+    }
+    stock = 7
+
+    order_release = orl.fractional(orders, stock)
+
+    assert order_release == {
+        "A": 0,
+        "B": 0,
+    }

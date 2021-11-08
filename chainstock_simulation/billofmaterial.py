@@ -314,6 +314,11 @@ class BillOfMaterialGraph(nx.DiGraph):
             # don't allow releases larger than the available stock
             release_quantity = min(orl, p["stock"][p_str])
 
+            # if nothing is being released, move to the next item.
+            # this avoids creating a zero pipeline entry
+            if release_quantity <= 0:
+                continue
+
             # release order
             self.nodes[q_str]["pipeline"].append(
                 {

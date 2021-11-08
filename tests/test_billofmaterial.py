@@ -577,6 +577,73 @@ def test_release_orders_infeasible():
     assert bill_of_material.nodes["B"]["orders"] == {"A": 1}
 
 
+def test_release_orders_zero():
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"e_lead_time": 10, "pipeline": []},
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "stock": {"B": 20},
+                    "orders": {"A": 20},
+                },
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    order_release = {"A": 0}
+    bill_of_material.release_orders(p_str="B", order_release=order_release)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == []
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 20}
+    assert bill_of_material.nodes["B"]["orders"] == {"A": 20}
+
+
+def test_release_orders_empty():
+    """
+    This test is for a different situation than the zero release case.
+    As the creation of the order release is user input, both the case where
+    zeros are returned as well as the  case where an empty dictionary is
+    created are feasible and result in the same behaviour.
+    :return:
+    """
+    bill_of_material = BillOfMaterialGraph(
+        data=[
+            {
+                "id": "A",
+                "data": {"e_lead_time": 10, "pipeline": []},
+                "adjacencies": {},
+            },
+            {
+                "id": "B",
+                "data": {
+                    "stock": {"B": 20},
+                    "orders": {"A": 20},
+                },
+                "adjacencies": [{"data": {"number": 1}, "item_to": "A"}],
+            },
+        ],
+        auxiliary_data={
+            "safety_stock_queue": {"A": {0: 1}},
+        },
+    )
+
+    order_release = {}
+    bill_of_material.release_orders(p_str="B", order_release=order_release)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == []
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 20}
+    assert bill_of_material.nodes["B"]["orders"] == {"A": 20}
+
+
 def test_inventory():
     bill_of_material = BillOfMaterialGraph(
         data=[
@@ -798,6 +865,10 @@ def test_fetch_lead_time_queue():
 
 
 def test_simulate_period():
+    """
+    Simulation of the N-model for 3 periods. This test ensures that the simulation
+    of a period runs through, as well as verifies that the output is correct.
+    """
     bill_of_material = BillOfMaterialGraph(
         data=[
             {
@@ -897,3 +968,56 @@ def test_simulate_period():
     ]
     assert bill_of_material.nodes["D"]["stock"] == {"D": 0}
     assert bill_of_material.nodes["D"]["orders"] == {"A": 23, "B": 132}
+
+    bill_of_material.simulate_period(2)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "C", "eta": 0, "quantity": 60},
+        {"sku_code": "D", "eta": 0, "quantity": 7},
+    ]
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 0, "C": 5, "D": 0}
+    assert bill_of_material.nodes["A"]["sales"] == {3: 10}
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 5
+
+    assert bill_of_material.nodes["B"]["pipeline"] == [
+        {"sku_code": "D", "eta": 1, "quantity": 33},
+    ]
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 0, "D": 0}
+    assert bill_of_material.nodes["B"]["sales"] == {3: 15}
+    assert bill_of_material.nodes["B"]["backorder_quantity"] == 10
+
+    assert bill_of_material.nodes["C"]["pipeline"] == []
+    assert bill_of_material.nodes["C"]["stock"] == {"C": 140}
+    assert bill_of_material.nodes["C"]["orders"] == {"A": 0}
+
+    assert bill_of_material.nodes["D"]["pipeline"] == [
+        {"sku_code": "D", "eta": 0, "quantity": 200},
+    ]
+    assert bill_of_material.nodes["D"]["stock"] == {"D": 0}
+    assert bill_of_material.nodes["D"]["orders"] == {"A": 23, "B": 132}
+
+    bill_of_material.simulate_period(3)
+
+    assert bill_of_material.nodes["A"]["pipeline"] == [
+        {"sku_code": "C", "eta": 1, "quantity": 60},
+        {"sku_code": "D", "eta": 1, "quantity": 41},
+    ]
+    assert bill_of_material.nodes["A"]["stock"] == {"A": 0, "C": 51, "D": 0}
+    assert bill_of_material.nodes["A"]["sales"] == {}
+    assert bill_of_material.nodes["A"]["backorder_quantity"] == 8
+
+    assert bill_of_material.nodes["B"]["pipeline"] == [
+        {"sku_code": "D", "eta": 0, "quantity": 33},
+        {"sku_code": "D", "eta": 2, "quantity": 159},
+    ]
+    assert bill_of_material.nodes["B"]["stock"] == {"B": 0, "D": 0}
+    assert bill_of_material.nodes["B"]["sales"] == {}
+    assert bill_of_material.nodes["B"]["backorder_quantity"] == 25
+
+    assert bill_of_material.nodes["C"]["pipeline"] == []
+    assert bill_of_material.nodes["C"]["stock"] == {"C": 80}
+    assert bill_of_material.nodes["C"]["orders"] == {"A": 0}
+
+    assert bill_of_material.nodes["D"]["pipeline"] == []
+    assert bill_of_material.nodes["D"]["stock"] == {"D": 0}
+    assert bill_of_material.nodes["D"]["orders"] == {"A": 12, "B": 48}
