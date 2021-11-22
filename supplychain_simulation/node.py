@@ -23,6 +23,8 @@ class Node:
     id: str
     data: dict[Any, Any] = field(default_factory=dict)
     sales: SalesStrategy = field(default_factory=Sales)
+    # TODO: make lead_time mandatory
+    #   The default right now will still result in an error when run
     lead_time: LeadTimeStrategy = field(default_factory=LeadTime)
     llc: int = -1
     backorders: int = 0

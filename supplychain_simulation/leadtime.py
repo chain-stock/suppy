@@ -11,6 +11,7 @@ class LeadTime(UserDict[int, int]):
     Raises KeyError for missing keys if default is not provided
     """
 
+    # TODO: verify values
     def __init__(
         self,
         _dict: Mapping[int, int] | None = None,

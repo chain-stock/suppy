@@ -84,6 +84,9 @@ class SupplyChain:
 
     def add_node(self, node: Node) -> None:
         self.nodes[node] = node
+        for edge in node.predecessors:
+            if not self.edge_exists(edge):
+                self.add_edge(edge)
 
     def get_node(self, node: str) -> Node:
         return self._nodes[node]
