@@ -95,7 +95,7 @@ class Node:
 
         adds backorders for any sales that could not be satisfied
         """
-        sales = self.sales.pop_sales(period)
+        sales = sum(self.sales.pop_sales(period))
         feasible = min(self.stock[self], sales)
         backorders = sales - feasible
         self.stock[self] -= feasible

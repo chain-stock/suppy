@@ -27,7 +27,7 @@ class LeadTimeStrategy(Protocol):
 
 class SalesStrategy(Protocol):
     @abstractmethod
-    def pop_sales(self, period: int) -> int:
+    def pop_sales(self, period: int) -> list[int]:
         ...
 
 

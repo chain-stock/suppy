@@ -68,7 +68,7 @@ def test_satisfy_sales_feasible():
     node = Node(
         id="A",
         stock=Stock({"A": 100, "B": 20}),
-        sales=Sales({1: 10}),
+        sales=Sales({1: [5, 5]}),
     )
     node.satisfy_sales(1)
     assert node.backorders == 0
@@ -80,7 +80,7 @@ def test_satisfy_sales_infeasible():
     node = Node(
         id="A",
         stock=Stock({"A": 100, "B": 20}),
-        sales=Sales({1: 140}),
+        sales=Sales({1: [140]}),
     )
     node.satisfy_sales(1)
     assert node.backorders == 40
@@ -92,7 +92,7 @@ def test_satisfy_sales_none():
     node = Node(
         id="A",
         stock=Stock({"A": 100, "B": 20}),
-        sales=Sales({2: 140}),
+        sales=Sales({2: [140]}),
     )
     node.satisfy_sales(1)
     assert node.backorders == 0
@@ -106,9 +106,9 @@ def test_satisfy_sales_custom():
         def __init__(self):
             self.sales = iter(range(3))
 
-        def pop_sales(self, period):
+        def pop_sales(self, period: int) -> list[int]:
             try:
-                return next(self.sales)
+                return [next(self.sales)]
             except StopIteration:
                 raise ValueError("Out of Sales") from None
 
