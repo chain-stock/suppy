@@ -20,9 +20,9 @@ class Pipeline:
         self.receipts[:] = [receipt for receipt in self.receipts if receipt.eta != 0]
         return received
 
-    def update_pipeline(self):
+    def update_pipeline(self) -> None:
         for receipt in self.receipts:
             receipt.eta -= 1
 
-    def add_receipt(self, receipt: Receipt):
+    def add_receipt(self, receipt: Receipt) -> None:
         self.receipts.append(receipt)

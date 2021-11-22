@@ -24,3 +24,13 @@ mypy = "^0.910"
 [build-system]
 requires = ["poetry>=1.0"]
 build-backend = "poetry.masonry.api"
+
+[tool.mypy]
+show_error_codes = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+strict_equality = false
+disallow_untyped_calls = false

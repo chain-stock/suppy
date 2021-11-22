@@ -5,25 +5,28 @@ from collections import UserDict
 from typing import (
     TYPE_CHECKING,
     AbstractSet,
+    Any,
     Generic,
     Iterator,
     Protocol,
     TypeVar,
+    Union,
     ValuesView,
     runtime_checkable,
 )
 
 if TYPE_CHECKING:
-    from supplychain_simulation.node import Node
-    from supplychain_simulation.simulator import Orders
+    from supplychain_simulation.node import Node, Orders
 
 
 class LeadTimeStrategy(Protocol):
+    @abstractmethod
     def get_lead_time(self, period: int) -> int:
         ...
 
 
 class SalesStrategy(Protocol):
+    @abstractmethod
     def pop_sales(self, period: int) -> int:
         ...
 
@@ -52,11 +55,11 @@ class _K(Protocol):
         ...
 
 
-_TId = TypeVar("_TId")  # , bound=_K)
+_TId = TypeVar("_TId", bound=_K)
 _V = TypeVar("_V")
 
 
-class IdDict(UserDict, Generic[_TId, _V]):
+class IdDict(UserDict[Union[_TId, str], _V]):
     """Generic typed UserDict
 
     Define the types as IdDict[<key type>, <value type>]
@@ -89,12 +92,12 @@ class IdDict(UserDict, Generic[_TId, _V]):
         """Set the item either by _TId.id or string"""
         super().__setitem__(self._key(key), value)
 
-    def __contains__(self, key: object) -> bool:
+    def __contains__(self, key: Any) -> bool:
         """Ensure "'x' in IdDict()" works"""
         return self._key(key) in self.data
 
     def values(self) -> ValuesView[_V]:
         return super().values()
 
-    def items(self) -> AbstractSet[tuple[str, _V]]:
+    def items(self) -> AbstractSet[tuple[str | _TId, _V]]:
         return super().items()

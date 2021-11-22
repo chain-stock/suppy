@@ -1,11 +1,11 @@
 import pytest
 
 from supplychain_simulation.leadtime import LeadTime
-from supplychain_simulation.node import Orders, Stock
+from supplychain_simulation.node import Node, Orders, Stock
 from supplychain_simulation.pipeline import Pipeline
 from supplychain_simulation.receipt import Receipt
 from supplychain_simulation.sales import Sales
-from supplychain_simulation.simulator import Edge, Node, Simulator, SupplyChain
+from supplychain_simulation.simulator import Edge, Simulator, SupplyChain
 from supplychain_simulation.strategy.control.rsq import RSQ
 from supplychain_simulation.strategy.release.fractional import Fractional
 

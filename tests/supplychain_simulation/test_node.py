@@ -1,3 +1,5 @@
+from typing import Iterable, Iterator
+
 import pytest
 
 from supplychain_simulation.leadtime import LeadTime

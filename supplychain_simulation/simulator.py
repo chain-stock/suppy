@@ -11,10 +11,10 @@ from .types import ControlStrategy, IdDict, ReleaseStrategy
 logger = logging.getLogger(__name__)
 
 
-class Inventory(IdDict["Node", float]):
+class Inventory(IdDict[Node, int]):
     """Inventory level of a node"""
 
-    def __missing__(self, key):
+    def __missing__(self, key: str | Node) -> int:
         """When a key is missing, default to 0"""
         self.__setitem__(key, 0)
         return 0
@@ -27,18 +27,18 @@ class Edge:
     Attributes:
         source (supplychain_simulation.node.Node): The predecessor of the `destination` Node
         destination (supplychain_simulation.node.Node): The successor of the `source` Node
-        number (float): The amount of `source` needed to make `destination`
+        number (int): The amount of `source` needed to make `destination`
     """
 
     source: str
     destination: str
-    number: float
+    number: int
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.source}->{self.destination}: {self.number}"
 
     @property
-    def id(self):
+    def id(self) -> str:
         return f"{self.source}->{self.destination}"
 
 
@@ -46,7 +46,9 @@ class SupplyChain:
     _nodes: IdDict[Node, Node]
     _edges: IdDict[Edge, Edge]
 
-    def __init__(self, nodes: list[Node] = None, edges: list[Edge] = None):
+    def __init__(
+        self, nodes: list[Node] | None = None, edges: list[Edge] | None = None
+    ):
         nodes = [] if nodes is None else nodes
         edges = [] if edges is None else edges
         # Convert the provided nodes and edges into dict for faster lookup
@@ -157,10 +159,11 @@ class SupplyChain:
         return inventory
 
     def inventory_assemblies_feasible(self, node: Node) -> int:
+        """Return the number of assemblies possible from stock and inventory"""
         inventory = self.inventory(node)
         return node.assemblies_feasible(inventory) + inventory[node]
 
-    def create_orders(self, node: Node, quantity: int, period: int):
+    def create_orders(self, node: Node, quantity: int, period: int) -> None:
         """Create orders for all the parts needed to assemble the node"""
         # This assumes we do not have partial stock for the node assembly
         # as it will always place orders at all predecessors for the total quantity
@@ -182,7 +185,7 @@ class SupplyChain:
             node.pipeline.add_receipt(receipt)
             logger.debug(f"\tNode {node}: {receipt} added to pipeline")
 
-    def release_orders(self, node: Node, releases: Orders, period: int):
+    def release_orders(self, node: Node, releases: Orders, period: int) -> None:
         """Add the releases to the pipeline of the appropriate node"""
         for release_node_id, quantity in releases.items():
             quantity = min(quantity, node.stock[node])
@@ -214,13 +217,13 @@ class Simulator:
     control_strategy: ControlStrategy
     release_strategy: ReleaseStrategy
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Check if the provided strategies implement the correct interface"""
         # TODO: change to pydantic to add runtime type checking
         assert isinstance(self.control_strategy, ControlStrategy)
         assert isinstance(self.release_strategy, ReleaseStrategy)
 
-    def run(self, *, start_period: int = 0, end_period: int):
+    def run(self, *, start_period: int = 0, end_period: int) -> None:
         """Run the simulation for the provided periods"""
         logger.info(
             f"Simulate periods {start_period} -> {end_period},"
@@ -230,7 +233,7 @@ class Simulator:
             logger.info(f"Simulating period {period}")
             self.simulate_period(period)
 
-    def simulate_period(self, period: int):
+    def simulate_period(self, period: int) -> None:
         # accept receipts
         for node in self.supply_chain.nodes.values():
             node.satisfy_received_receipts()

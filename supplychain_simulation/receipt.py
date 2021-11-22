@@ -7,4 +7,4 @@ class Receipt:
 
     eta: int
     sku_code: str
-    quantity: float
+    quantity: int
