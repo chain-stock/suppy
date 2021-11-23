@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, call, patch
+
 import pytest
 
 from supplychain_simulation import Edge, Simulator, SupplyChain
@@ -6,6 +8,21 @@ from supplychain_simulation.node import Node, Orders, Sales, Stock
 from supplychain_simulation.pipeline import Pipeline, Receipt
 from supplychain_simulation.strategy.control.rsq import RSQ
 from supplychain_simulation.strategy.release.fractional import Fractional
+
+
+@pytest.mark.parametrize("run_args", ((1, 3), (3,)))
+@patch("supplychain_simulation.simulator.Simulator.simulate_period")
+def test_simulator_run(sim_period_mock, run_args):
+    """Test the different calls to run"""
+    sim = Simulator(None, MagicMock(), MagicMock())  # type: ignore
+    sim.run(*run_args)
+    sim_period_mock.assert_has_calls(
+        [
+            call(1),
+            call(2),
+            call(3),
+        ]
+    )
 
 
 def test_simulate_period():

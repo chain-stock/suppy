@@ -232,8 +232,20 @@ class Simulator:
                 "Provided release_strategy is not compatible with the ReleaseStrategy Protocol"
             )
 
-    def run(self, *, start_period: int = 0, end_period: int) -> None:
-        """Run the simulation for the provided periods"""
+    def run(self, start_or_end_period: int, /, end_period: int | None = None) -> None:
+        """Run the simulation for a number of periods
+
+        Arguments:
+            start_or_end_period: period to start with if end_period is provided.
+                period to end with, starting at 1 if end_period is not provided.
+            end_period: period to end with
+        """
+        if end_period is None:
+            start_period = 1
+            end_period = start_or_end_period
+        else:
+            start_period = start_or_end_period
+
         logger.info(
             f"Simulate periods {start_period} -> {end_period},"
             f" {end_period-start_period+1} periods"
