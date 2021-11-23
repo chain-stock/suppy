@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True, eq=True)
@@ -13,7 +13,7 @@ class Edge:
 
     source: str
     destination: str
-    number: int
+    number: int = field(compare=False)  # Only check source and destination for equality
 
     @property
     def id(self) -> str:

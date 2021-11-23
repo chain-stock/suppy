@@ -15,7 +15,7 @@ class LeadTimeStrategy(Protocol):
     """Interface for a Node's lead-time"""
 
     @abstractmethod
-    def get_lead_time(self, period: int) -> int:
+    def get_lead_time(self, period: int) -> int:  # pragma: no cover
         """Should return the lead-time for the provided period"""
         ...
 
@@ -24,7 +24,7 @@ class SalesStrategy(Protocol):
     """Interface for a Node's sales"""
 
     @abstractmethod
-    def pop_sales(self, period: int) -> list[int]:
+    def pop_sales(self, period: int) -> list[int]:  # pragma: no cover
         """Should return the order lines for the provided period"""
         ...
 
@@ -34,7 +34,7 @@ class ControlStrategy(Protocol):
     """Interface for the SupplyChain's control_strategy"""
 
     @abstractmethod
-    def get_orders(self, node: Node, period: int) -> Orders:
+    def get_orders(self, node: Node, period: int) -> Orders:  # pragma: no cover
         """Should return the orders to place for `node` at `period`"""
         ...
 
@@ -44,7 +44,7 @@ class ReleaseStrategy(Protocol):
     """Interface for the SupplyChain's release_strategy"""
 
     @abstractmethod
-    def get_releases(self, node: Node) -> Orders:
+    def get_releases(self, node: Node) -> Orders:  # pragma: no cover
         """Should return the orders to release"""
         ...
 
@@ -54,7 +54,7 @@ class _K(Protocol):
 
     @property
     @abstractmethod
-    def id(self) -> str:
+    def id(self) -> str:  # pragma: no cover
         """Require the TypeVar to have either an attribute or property `id`"""
         ...
 

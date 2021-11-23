@@ -134,14 +134,46 @@ def test_supplychain_from_json(tmp_path):
     assert node_b.pipeline == []
 
     assert isinstance(node_a.stock, Stock)
-    assert isinstance(node_a.stock, Stock)
+    assert isinstance(node_b.stock, Stock)
     assert node_a.stock == {"A": 42, "B": 24}
     assert node_b.stock == {}
 
     assert isinstance(node_a.orders, Orders)
-    assert isinstance(node_a.orders, Orders)
+    assert isinstance(node_b.orders, Orders)
     assert node_a.orders == {"A": 43, "B": 25}
     assert node_b.orders == {}
+
+
+def test_supplychain_from_json_minimal(tmp_path):
+    """Test if we can parse the minimum set of values for a Node"""
+    json_data = """
+    {
+        "nodes": [
+            {
+                "id": "A"
+            }
+        ]
+    }
+    """
+
+    result = parse.supplychain_from_jsons(json_data)
+
+    assert result.node_exists("A")
+
+    node_a = result.nodes["A"]
+
+    assert node_a.predecessors == []
+    assert isinstance(node_a.sales, Sales)
+    assert node_a.sales == {}
+    assert isinstance(node_a.lead_time, LeadTime)
+    assert node_a.lead_time == {}
+    assert node_a.backorders == 0
+    assert isinstance(node_a.pipeline, Pipeline)
+    assert node_a.pipeline == []
+    assert isinstance(node_a.stock, Stock)
+    assert node_a.stock == {}
+    assert isinstance(node_a.orders, Orders)
+    assert node_a.orders == {}
 
 
 def test_parse_sales_invalid_type():

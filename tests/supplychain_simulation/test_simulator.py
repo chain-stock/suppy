@@ -98,6 +98,16 @@ def test_simulate_period():
     assert sc.nodes["A"].stock == {"A": 5, "C": 5, "D": 0}
 
 
+def test_simulator_invalid_strategies():
+    """Test if an error is raised when the provided strategies
+    don't implement the correct interface"""
+    sc = SupplyChain()
+    with pytest.raises(ValueError, match="control_strategy is not compatible"):
+        Simulator(sc, control_strategy=int, release_strategy=Fractional())  # type: ignore
+    with pytest.raises(ValueError, match="release_strategy is not compatible"):
+        Simulator(sc, control_strategy=RSQ(sc), release_strategy=int)  # type: ignore
+
+
 def test_supply_chain_node_exists():
     sc = SupplyChain(nodes=[Node("A"), Node("B")])
 
@@ -107,6 +117,46 @@ def test_supply_chain_node_exists():
     assert sc.node_exists("A")
     assert sc.node_exists(Node("A"))
     assert not sc.node_exists("C")
+
+
+def test_supply_chain_check_edges_error():
+    """Test if an error is raised if an edge is added without it's corresponding nodes"""
+    with pytest.raises(
+        ValueError,
+        match=r"Edge\(source='A', destination='B', number=42\) defines unknown source node A",
+    ):
+        SupplyChain(edges=[Edge("A", "B", 42)])
+
+    with pytest.raises(
+        ValueError,
+        match=r"Edge\(source='A', destination='B', number=42\) "
+        r"defines unknown destination node B",
+    ):
+        SupplyChain(edges=[Edge("A", "B", 42)], nodes=[Node("A")])
+
+
+def test_supply_chain_check_edges_existing_edge():
+    """Test if Edges in Node.predecessors have precedence over the edges list"""
+    sc = SupplyChain(
+        nodes=[
+            Node("A", predecessors=[Edge("B", "A", 5)]),
+            Node("B"),
+        ],
+        edges=[Edge("B", "A", 42)],
+    )
+    assert sc.nodes["A"].predecessors[0].number == 5
+    assert sc.edges["B->A"].number == 5
+
+
+def test_supply_chain_check_nodes_invalid_predecessor():
+    """Check if we raise an error if a Node defines a predecessor with the wrong destination"""
+    with pytest.raises(ValueError):
+        SupplyChain(
+            nodes=[
+                Node("A", predecessors=[Edge("A", "B", 5)]),
+                Node("B"),
+            ],
+        )
 
 
 def test_supply_chain_release_orders():

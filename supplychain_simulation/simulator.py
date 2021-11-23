@@ -60,12 +60,10 @@ class SupplyChain:
         """Check if all provided edges are valid and add them to the `Node.predecessors`"""
         for edge in self.edges.values():
             if not self.node_exists(edge.source):
-                raise ValueError(
-                    f"Edge {edge} defines unknown source node {edge.source}"
-                )
+                raise ValueError(f"{edge} defines unknown source node {edge.source}")
             if not self.node_exists(edge.destination):
                 raise ValueError(
-                    f"Edge {edge} defines unknown destination node {edge.destination}"
+                    f"{edge} defines unknown destination node {edge.destination}"
                 )
 
             destination = self.nodes[edge.destination]
@@ -76,8 +74,13 @@ class SupplyChain:
         """Add any Edge defined on a Node.predecessors to the list of edges"""
         for node in self.nodes.values():
             for edge in node.predecessors:
-                if not self.edge_exists(edge):
-                    self.edges[edge] = edge
+                if edge.destination != node.id:
+                    raise ValueError(
+                        f"Node {node} defined a predecessor "
+                        f"with a destination that is not Node {node}: {edge}"
+                    )
+                # Add/Overwrite the edge so node.predecessors has precedence over the edges list
+                self.edges[edge] = edge
 
     def node_exists(self, node: str | Node) -> bool:
         """Return True if `node` is part of this supply-chain
@@ -202,7 +205,7 @@ class SupplyChain:
                 quantity=quantity,
             )
             release_node.pipeline.add_receipt(receipt)
-            logger.debug(f"\tNode {release_node}: {receipt} added to pipeline")
+            logger.debug("\tNode %s: %s added to pipeline", release_node, receipt)
 
             node.stock[node] -= quantity
             node.orders[release_node] -= quantity
@@ -231,7 +234,6 @@ class Simulator:
 
     def __post_init__(self) -> None:
         """Check if the provided strategies implement the correct interface"""
-        # TODO: change to pydantic to add runtime type checking
         if not isinstance(self.control_strategy, ControlStrategy):
             raise ValueError(
                 "Provided control_strategy is not compatible with the ControlStrategy Protocol"
@@ -256,11 +258,13 @@ class Simulator:
             start_period = start_or_end_period
 
         logger.info(
-            f"Simulate periods {start_period} -> {end_period},"
-            f" {end_period-start_period+1} periods"
+            "Simulate periods %s -> %s," " %s periods",
+            start_period,
+            end_period,
+            end_period - start_period + 1,
         )
         for period in range(start_period, end_period + 1):
-            logger.info(f"Simulating period {period}")
+            logger.info("Simulating period %s", period)
             self.simulate_period(period)
 
     def simulate_period(self, period: int) -> None:

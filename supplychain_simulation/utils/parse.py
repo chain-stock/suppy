@@ -44,6 +44,13 @@ class EdgeDict(TypedDict):
     number: int
 
 
+class JsonSupplyChain(TypedDict):
+    """Dict representation of the JSON file-format"""
+
+    nodes: list[NodeDict]
+    edges: list[EdgeDict]
+
+
 def supplychain_from_json(file: PathLike[str]) -> SupplyChain:
     """Convert a JSON file to a SupplyChain instance"""
     return supplychain_from_jsons(Path(file).read_text(encoding="utf-8"))
@@ -52,9 +59,9 @@ def supplychain_from_json(file: PathLike[str]) -> SupplyChain:
 def supplychain_from_jsons(json_data: str | bytes) -> SupplyChain:
     """Convert JSON string to a SupplyChain instance"""
 
-    data = json.loads(json_data)
-    json_nodes: list[NodeDict] = data["nodes"]
-    json_edges: list[EdgeDict] = data["edges"]
+    data: JsonSupplyChain = json.loads(json_data)
+    json_nodes = data.get("nodes", [])
+    json_edges = data.get("edges", [])
 
     nodes: list[Node] = []
 

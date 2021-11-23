@@ -1,6 +1,5 @@
 from collections import UserList
-from dataclasses import dataclass, field
-from typing import Iterator
+from dataclasses import dataclass
 
 
 @dataclass

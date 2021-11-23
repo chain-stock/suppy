@@ -25,7 +25,7 @@ class Sales(UserDict[int, list[int]]):
 
 
 @dataclass
-class Node:
+class Node:  # pylint: disable=too-many-instance-attributes
     """A single node in a supply-chain
 
     A node is identified by it's `id` and can be used as a key in IdDict instances
@@ -70,8 +70,12 @@ class Node:
     predecessors: list[Edge] = field(default_factory=list)
     backorders: int = 0
     pipeline: Pipeline = field(default_factory=Pipeline)
-    stock: Stock = field(default_factory=lambda: Stock())
-    orders: Orders = field(default_factory=lambda: Orders())
+    stock: Stock = field(
+        default_factory=lambda: Stock()  # pylint: disable=unnecessary-lambda
+    )
+    orders: Orders = field(
+        default_factory=lambda: Orders()  # pylint: disable=unnecessary-lambda
+    )
     data: dict[Any, Any] = field(default_factory=dict)
     llc: int = -1
 
@@ -126,8 +130,8 @@ class Node:
 
         # the number of items that can be assembled is non-negative.
         # this check should be unnecessary.
-        if feasible < 0:
-            logger.warning(f"Found negative feasible assemblies for node {self}")
+        # TODO: restrict Stock values and Edge.number to >= 0
+        #   Than this max() is no longer needed and a proper error is raised
         feasible = max(feasible, 0)
 
         return feasible
@@ -135,7 +139,7 @@ class Node:
     def satisfy_received_receipts(self) -> None:
         """Update the stock with the received receipts from the pipeline"""
         received_receipts = self.pipeline.pop_received()
-        logger.debug(f"Node {self}: {len(received_receipts)} receipts received")
+        logger.debug("Node %s: %s receipts received", self, len(received_receipts))
         self.stock.add_received(received_receipts)
 
     def satisfy_backorders(self) -> None:
@@ -143,7 +147,10 @@ class Node:
         if self.backorders:
             feasible = min(self.stock[self], self.backorders)
             logger.debug(
-                f"Node {self}: {feasible}/{self.backorders} backorders satisfied"
+                "Node %s: %s/%s backorders satisfied",
+                self,
+                feasible,
+                self.backorders,
             )
             self.backorders -= feasible
             self.stock[self] -= feasible
@@ -159,7 +166,11 @@ class Node:
         self.stock[self] -= feasible
         self.backorders += backorders
         logger.debug(
-            f"Node {self}: {feasible}/{sales} sales satisfied ({backorders} backorders)"
+            "Node %s: %s/%s sales satisfied (%s backorders)",
+            self,
+            feasible,
+            sales,
+            backorders,
         )
 
     def assemble(self) -> None:
@@ -171,7 +182,7 @@ class Node:
         for edge in self.predecessors:
             self.stock[edge.source] -= feasible * edge.number
         self.stock[self] += feasible
-        logger.debug(f"Node {self}: Assembled {feasible}")
+        logger.debug("Node %s: Assembled %s", self, feasible)
 
     def get_lead_time(self, period: int) -> int:
         """Return the lead-time of this Node at the provided period"""
@@ -218,4 +229,4 @@ class Stock(IdDict[Node, int]):
         """Add the received receipts to the stock"""
         for receipt in received:
             self[receipt.sku_code] += receipt.quantity
-            logger.debug(f"\t{receipt.quantity} {receipt.sku_code} added to stock")
+            logger.debug("\t%s %s added to stock", receipt.quantity, receipt.sku_code)
