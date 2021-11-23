@@ -156,27 +156,36 @@ class SupplyChain:
         inventory = self.inventory(node)
         return node.assemblies_feasible(inventory) + inventory[node]
 
-    def create_orders(self, node: Node, quantity: int, period: int) -> None:
-        """Create orders for all the parts needed to assemble the node"""
+    def create_orders(self, node: Node, orders: Orders, period: int) -> None:
+        """Create orders for all the parts needed to assemble the node
+
+        orders can contain orders for both the node itself and for other nodes
+        If the order is for the current node, explode the bom and
+        place the orders at the node's predecessors.
+
+        If the order is for another node,
+        place an order at that node to be sent to the current node
+        """
         # This assumes we do not have partial stock for the node assembly
         # as it will always place orders at all predecessors for the total quantity
-        if quantity <= 0:
-            return
-        logger.debug(f"Node {node}: Creating orders")
-        if node.intercompany:
-            for edge in node.predecessors:
-                self.nodes[edge.source].orders[edge.destination] += (
-                    quantity * edge.number
-                )
-                logger.debug(f"\tNode {edge.source}: {quantity * edge.number}")
-        else:
-            receipt = Receipt(
-                sku_code=node.id,
-                eta=node.get_lead_time(period),
-                quantity=quantity,
-            )
-            node.pipeline.add_receipt(receipt)
-            logger.debug(f"\tNode {node}: {receipt} added to pipeline")
+        for order_node_id, quantity in orders.items():
+            if quantity <= 0:
+                continue
+            if node.id == order_node_id:
+                if node.intercompany:
+                    # explode the bom
+                    for edge in node.predecessors:
+                        self.nodes[edge.source].orders[node] += quantity * edge.number
+                else:
+                    receipt = Receipt(
+                        sku_code=node.id,
+                        eta=node.get_lead_time(period),
+                        quantity=quantity,
+                    )
+                    node.pipeline.add_receipt(receipt)
+            else:
+                order_node = self.nodes[order_node_id]
+                order_node.orders[node] += quantity
 
     def release_orders(self, node: Node, releases: Orders, period: int) -> None:
         """Add the releases to the pipeline of the appropriate node"""
@@ -280,13 +289,9 @@ class Simulator:
         for llc in range(self.supply_chain.max_llc + 1):
             for node in self.supply_chain.nodes_by_llc(llc):
                 # determine order size
-                order_quantity = self.control_strategy.get_order_quantity(
-                    node=node, period=period
-                )
+                orders = self.control_strategy.get_orders(node=node, period=period)
                 # create new orders
-                self.supply_chain.create_orders(
-                    node, quantity=order_quantity, period=period
-                )
+                self.supply_chain.create_orders(node, orders=orders, period=period)
                 # create order release
                 order_releases = self.release_strategy.get_releases(node)
                 # release orders

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from math import ceil
 from typing import TypedDict
 
-from supplychain_simulation.node import Node
+from supplychain_simulation.node import Node, Orders
 from supplychain_simulation.simulator import SupplyChain
 
 
@@ -26,7 +26,7 @@ class RSQ:
 
     supply_chain: SupplyChain
 
-    def get_order_quantity(self, node: Node, period: int) -> int:
+    def get_orders(self, node: Node, period: int) -> Orders:
         """Return the quantity of `node` to order"""
         # Cast node.data to RsqData
         # This is only done to allow mypy to infer the types of `data` properly.
@@ -44,5 +44,6 @@ class RSQ:
                 ceil((data["reorder_level"] - inventory) / data["order_quantity"])
                 * data["order_quantity"]
             )
-
-        return order_quantity
+        orders = Orders()
+        orders[node] = order_quantity
+        return orders

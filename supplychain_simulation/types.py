@@ -40,8 +40,8 @@ class ControlStrategy(Protocol):
     """Interface for the SupplyChain's control_strategy"""
 
     @abstractmethod
-    def get_order_quantity(self, node: Node, period: int) -> int:
-        """Should return the number of orders to place for `node` at `period`"""
+    def get_orders(self, node: Node, period: int) -> Orders:
+        """Should return the orders to place for `node` at `period`"""
         ...
 
 

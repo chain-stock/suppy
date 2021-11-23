@@ -252,10 +252,10 @@ def test_supply_chain_create_orders():
         ]
     )
 
-    sc.create_orders(sc.nodes["A"], quantity=10, period=1)
+    sc.create_orders(sc.nodes["A"], orders=Orders({"A": 10, "B": 2, "C": 1}), period=1)
 
-    assert sc.nodes["B"].orders == {"A": 11}
-    assert sc.nodes["C"].orders == {"A": 20}
+    assert sc.nodes["B"].orders == {"A": 13}
+    assert sc.nodes["C"].orders == {"A": 21}
 
 
 def test_supply_chain_create_orders_supplier():
@@ -273,7 +273,7 @@ def test_supply_chain_create_orders_supplier():
             )
         ]
     )
-    sc.create_orders(sc.nodes["A"], quantity=10, period=1)
+    sc.create_orders(sc.nodes["A"], orders=Orders({"A": 10}), period=1)
 
     assert sc.nodes["A"].pipeline == [
         Receipt(sku_code="A", eta=1, quantity=5),
@@ -284,7 +284,7 @@ def test_supply_chain_create_orders_supplier():
 def test_supply_chain_create_orders_none():
     """Test if any orders for supplier items are added to the pipeline"""
     sc = SupplyChain(nodes=[Node("A")])
-    sc.create_orders(sc.nodes["A"], quantity=0, period=1)
+    sc.create_orders(sc.nodes["A"], orders=Orders({"A": 0}), period=1)
 
     assert sc.nodes["A"].pipeline == []
 

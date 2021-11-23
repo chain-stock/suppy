@@ -17,7 +17,7 @@ def test_r_s_q_order():
     rsq = RSQ(supplychain)
     node = Node("A", data=d)
 
-    assert rsq.get_order_quantity(node=node, period=t) == 9
+    assert rsq.get_orders(node=node, period=t)[node] == 9
 
 
 def test_r_s_q_no_order():
@@ -33,8 +33,8 @@ def test_r_s_q_no_order():
     node = Node("A", data=d)
 
     t = 17
-    assert rsq.get_order_quantity(node=node, period=t) == 0
+    assert rsq.get_orders(node=node, period=t)[node] == 0
 
     supplychain.inventory_assemblies_feasible.return_value = 7
     t = 16
-    assert rsq.get_order_quantity(node=node, period=t) == 0
+    assert rsq.get_orders(node=node, period=t)[node] == 0
