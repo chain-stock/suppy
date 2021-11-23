@@ -4,4 +4,4 @@ disable=bad-continuation,missing-module-docstring
 enable=useless-suppression
 
 [BASIC]
-good-names=i,j,k,ex,Run,_,logger
+good-names=i,j,k,ex,Run,_,logger,id

@@ -5,10 +5,10 @@ from math import ceil
 from supplychain_simulation.node import Node, Orders
 
 
-class Fractional:
+class Fractional:  # pylint: disable=too-few-public-methods
     """Fractional implementation of the supply-chain release strategy"""
 
-    def get_releases(self, node: Node) -> Orders:
+    def get_releases(self, node: Node) -> Orders:  # pylint: disable=no-self-use
         """Build a set of Orders that should be released"""
         releases = Orders()
         orders = node.orders

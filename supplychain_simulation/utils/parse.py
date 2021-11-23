@@ -46,7 +46,7 @@ class EdgeDict(TypedDict):
 
 def supplychain_from_json(file: PathLike[str]) -> SupplyChain:
     """Convert a JSON file to a SupplyChain instance"""
-    return supplychain_from_jsons(Path(file).read_text())
+    return supplychain_from_jsons(Path(file).read_text(encoding="utf-8"))
 
 
 def supplychain_from_jsons(json_data: str | bytes) -> SupplyChain:

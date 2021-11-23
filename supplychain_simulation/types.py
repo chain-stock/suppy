@@ -2,19 +2,13 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections import UserDict
-from typing import (
-    TYPE_CHECKING,
-    AbstractSet,
-    Any,
-    Protocol,
-    TypeVar,
-    Union,
-    ValuesView,
-    runtime_checkable,
-)
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, Union, runtime_checkable
 
 if TYPE_CHECKING:
     from supplychain_simulation.node import Node, Orders
+
+
+# pylint: disable=too-few-public-methods
 
 
 class LeadTimeStrategy(Protocol):
