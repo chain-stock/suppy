@@ -74,7 +74,7 @@ def test_simulate_period():
     )
     sim.simulate_period(1)
 
-    assert sc.nodes["A"].pipeline.receipts == [
+    assert sc.nodes["A"].pipeline == [
         Receipt(sku_code="C", eta=1, quantity=60),
         Receipt(sku_code="D", eta=1, quantity=7),
     ]
@@ -110,9 +110,7 @@ def test_supply_chain_release_orders():
     releases = Orders({"A": 20})
     sc.release_orders(sc.nodes["B"], releases=releases, period=1)
 
-    assert sc.nodes["A"].pipeline.receipts == [
-        Receipt(sku_code="B", eta=10, quantity=20)
-    ]
+    assert sc.nodes["A"].pipeline == [Receipt(sku_code="B", eta=10, quantity=20)]
     assert sc.nodes["B"].stock == {"B": 0}
     assert sc.nodes["B"].orders == {"A": 0}
 
@@ -135,9 +133,7 @@ def test_supply_chain_release_orders_infeasbile():
     releases = Orders({"A": 21})
     sc.release_orders(sc.nodes["B"], releases=releases, period=1)
 
-    assert sc.nodes["A"].pipeline.receipts == [
-        Receipt(sku_code="B", eta=10, quantity=20)
-    ]
+    assert sc.nodes["A"].pipeline == [Receipt(sku_code="B", eta=10, quantity=20)]
     assert sc.nodes["B"].stock == {"B": 0}
     assert sc.nodes["B"].orders == {"A": 1}
 
@@ -160,7 +156,7 @@ def test_supply_chain_release_orders_zero(releases):
 
     sc.release_orders(sc.nodes["B"], releases=releases, period=1)
 
-    assert sc.nodes["A"].pipeline.receipts == []
+    assert sc.nodes["A"].pipeline == []
     assert sc.nodes["B"].stock == {"B": 20}
     assert sc.nodes["B"].orders == {"A": 20}
 
@@ -262,7 +258,7 @@ def test_supply_chain_create_orders_supplier():
     )
     sc.create_orders(sc.nodes["A"], quantity=10, period=1)
 
-    assert sc.nodes["A"].pipeline.receipts == [
+    assert sc.nodes["A"].pipeline == [
         Receipt(sku_code="A", eta=1, quantity=5),
         Receipt(sku_code="A", eta=7, quantity=10),
     ]
@@ -273,7 +269,7 @@ def test_supply_chain_create_orders_none():
     sc = SupplyChain(nodes=[Node("A")])
     sc.create_orders(sc.nodes["A"], quantity=0, period=1)
 
-    assert sc.nodes["A"].pipeline.receipts == []
+    assert sc.nodes["A"].pipeline == []
 
 
 def test_supply_chain_set_llc():

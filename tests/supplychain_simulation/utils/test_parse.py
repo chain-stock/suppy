@@ -87,8 +87,8 @@ def test_supplychain_from_json(tmp_path):
 
     assert isinstance(node_a.pipeline, Pipeline)
     assert isinstance(node_b.pipeline, Pipeline)
-    assert node_a.pipeline.receipts == [Receipt(sku_code="B", eta=2, quantity=5)]
-    assert node_b.pipeline.receipts == []
+    assert node_a.pipeline == [Receipt(sku_code="B", eta=2, quantity=5)]
+    assert node_b.pipeline == []
 
     assert isinstance(node_a.stock, Stock)
     assert isinstance(node_a.stock, Stock)
@@ -130,8 +130,8 @@ def test_supplychain_from_json(tmp_path):
 
     assert isinstance(node_a.pipeline, Pipeline)
     assert isinstance(node_b.pipeline, Pipeline)
-    assert node_a.pipeline.receipts == [Receipt(sku_code="B", eta=2, quantity=5)]
-    assert node_b.pipeline.receipts == []
+    assert node_a.pipeline == [Receipt(sku_code="B", eta=2, quantity=5)]
+    assert node_b.pipeline == []
 
     assert isinstance(node_a.stock, Stock)
     assert isinstance(node_a.stock, Stock)

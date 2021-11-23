@@ -162,7 +162,7 @@ def test_satisfy_received_receipts():
     node.satisfy_received_receipts()
 
     assert node.stock == {"A": 18, "B": 9, "C": 3}
-    assert node.pipeline.receipts == [
+    assert node.pipeline == [
         Receipt(sku_code="A", eta=8, quantity=10),
     ]
 
