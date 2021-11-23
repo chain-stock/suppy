@@ -9,6 +9,8 @@ from supplychain_simulation.simulator import SupplyChain
 
 
 class RsqData(TypedDict):
+    """Typed dict with mandatory data fields when using the RSQ strategy"""
+
     review_time: int
     reorder_level: int
     order_quantity: int
@@ -16,16 +18,24 @@ class RsqData(TypedDict):
 
 @dataclass
 class RSQ:
+    """RSQ implementation of the supply-chain control strategy
+
+    Arguments:
+        supply_chain(SupplyChain) SupplyChain instance to fetch the inventory levels from
+    """
+
     supply_chain: SupplyChain
 
     def get_order_quantity(self, node: Node, period: int) -> int:
         """Return the quantity of `node` to order"""
-        # Cast node.data to RsqData, this is only done to allow mypy to infer the types of `data` properly.
+        # Cast node.data to RsqData
+        # This is only done to allow mypy to infer the types of `data` properly.
         data = RsqData(
             review_time=node.data["review_time"],
             reorder_level=node.data["reorder_level"],
             order_quantity=node.data["order_quantity"],
         )
+        # Get the inventory level for the requested node
         inventory = self.supply_chain.inventory_assemblies_feasible(node)
 
         order_quantity = 0

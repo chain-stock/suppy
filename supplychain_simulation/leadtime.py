@@ -23,9 +23,22 @@ class LeadTime(UserDict[int, int]):
         self.default = default
 
     def __missing__(self, key: int) -> int:
+        """Return the default value if provided
+
+        Raises:
+            KeyError
+        """
         if self.default:
             return self.default
         raise KeyError(key)
 
     def get_lead_time(self, period: int) -> int:
+        """Return the lead-time for a specific period
+
+        Arguments:
+            period: the period to return the lead-time for
+
+        Raises:
+            KeyError
+        """
         return self[period]

@@ -1,55 +1,111 @@
 from __future__ import annotations
 
 import logging
+from collections import UserDict
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from supplychain_simulation.leadtime import LeadTime
-from supplychain_simulation.pipeline import Pipeline
-from supplychain_simulation.receipt import Receipt
-from supplychain_simulation.sales import Sales
-from supplychain_simulation.types import IdDict
-
-if TYPE_CHECKING:
-    from supplychain_simulation.simulator import Edge
-    from supplychain_simulation.types import LeadTimeStrategy, SalesStrategy
-
+from .edge import Edge
+from .leadtime import LeadTime
+from .pipeline import Pipeline, Receipt
+from .types import IdDict, LeadTimeStrategy, SalesStrategy
 
 logger = logging.getLogger(__name__)
 
 
+class Sales(UserDict[int, list[int]]):
+    """dict of sales per period"""
+
+    def pop_sales(self, period: int) -> list[int]:
+        """Remove and return the sales for a specific period
+
+        If there were no sales for the period, returns 0
+        """
+        return self.data.pop(period, [])
+
+
 @dataclass
 class Node:
+    """A single node in a supply-chain
+
+    A node is identified by it's `id` and can be used as a key in IdDict instances
+
+    The behaviour of a node during simulation can be influenced by providing custom
+    `sales` and `lead_time` objects.
+
+    Any additional data for a Node can be provided using the `data` field.
+
+    Arguments:
+        id: Unique identifier of this Node
+        lead_time: An object capable of returning the lead-time for a specific period
+            should adhere to the LeadTimeStrategy Protocol
+        sales: An object capable of returning the sales order-lines for a specific period
+            should adhere to the SalesStrategy Protocol
+        predecessors: A list Edges that together could produce/assemble this Node
+        backorders: The number of outstanding backorders for this Node
+            defaults to 0, provide this to initialize the simulation with existing backorders
+        pipeline: A Pipeline instance for this Node
+            defaults to an empty pipeline, provide this to initialize the simulation with
+            existing receipts in the pipeline
+        stock: Current stock levels at this Node
+            defaults to an empty stock, provide this to initialize the simulation with existing
+            items in stock
+        orders: Outstanding orders at this Node
+            default to no outstanding orders, provide this to initialize the simulation with
+            existing orders at this Node
+        data: dict of any additional data this Node might need
+            This should be used to provide per-Node data for user-configurable parts of the sim
+            For example when using the RSQ control-strategy this should contain the
+            `review_time`, `reorder_level` and `order_quantity` fields.
+            See `:RsqData:` for more info.
+        llc: The low-level-code of this Node
+            Will be automatically set/overwritten when initializing a SupplyChain with this Node
+    """
+
     id: str
-    data: dict[Any, Any] = field(default_factory=dict)
-    sales: SalesStrategy = field(default_factory=Sales)
     # TODO: make lead_time mandatory
     #   The default right now will still result in an error when run
     lead_time: LeadTimeStrategy = field(default_factory=LeadTime)
-    llc: int = -1
-    backorders: int = 0
+    sales: SalesStrategy = field(default_factory=Sales)
     predecessors: list[Edge] = field(default_factory=list)
+    backorders: int = 0
     pipeline: Pipeline = field(default_factory=Pipeline)
     stock: Stock = field(default_factory=lambda: Stock())
     orders: Orders = field(default_factory=lambda: Orders())
+    data: dict[Any, Any] = field(default_factory=dict)
+    llc: int = -1
 
     def __str__(self) -> str:
-        return self.id
+        """Only include the Node ID in it's string representation
+
+        Each node is supposed to be unique within a supply-chain so this
+        is enough to identify a Node
+        """
+        return f"Node({self.id})"
 
     def __hash__(self) -> int:
         """Hash by the Node ID
 
-        Nodes are keyed in Stock and SupplyChain by their hash to allow lookup
-        by either string or Node instance
+        Allow using a Node as a key in a dict
+        Be aware that this hash does not uniquely identifies this instance
+        and should not be relied upon to ensure uniqueness
         """
         return hash(f"{self.id}")
 
     @property
     def intercompany(self) -> bool:
+        """Indicates if this Node is an inter-company Node
+
+        A Node is considered inter-company if it has predecessors
+        """
         return len(self.predecessors) > 0
 
     @property
     def supplier(self) -> bool:
+        """Indicates if this Node is a supplier Node
+
+        A Node is considered supplier if it has no predecessors
+        """
         return len(self.predecessors) == 0
 
     def assemblies_feasible(self, stock: IdDict[Node, int] | None = None) -> int:
@@ -118,6 +174,7 @@ class Node:
         logger.debug(f"Node {self}: Assembled {feasible}")
 
     def get_lead_time(self, period: int) -> int:
+        """Return the lead-time of this Node at the provided period"""
         return self.lead_time.get_lead_time(period)
 
 
@@ -125,6 +182,10 @@ class Orders(IdDict[Node, int]):
     """Orders placed at a node
 
     The key represents the target node, the value the quantity to send
+    To get the orders for a specific Node, use the ID of a node or the Node instance itself:
+    ```
+    orders["A"] == orders[Node("A")]
+    ```
     """
 
     def __missing__(self, key: str | Node) -> int:
@@ -133,6 +194,7 @@ class Orders(IdDict[Node, int]):
         return 0
 
     def sum(self) -> int:
+        """Return the sum of all orders"""
         return sum(self.values())
 
 
@@ -141,7 +203,7 @@ class Stock(IdDict[Node, int]):
 
     Each node can have stock for itself any any other node
 
-    To get the stock level, use the ID of a node or the Node instance itself
+    To get the stock level, use the ID of a node or the Node instance itself:
     ```
     stock["A"] == stock[Node("A")]
     ```

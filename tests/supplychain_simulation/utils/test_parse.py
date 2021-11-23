@@ -1,9 +1,8 @@
 import pytest
 
-from supplychain_simulation import Edge, LeadTime, Sales, SupplyChain
-from supplychain_simulation.node import Orders, Stock
-from supplychain_simulation.pipeline import Pipeline
-from supplychain_simulation.receipt import Receipt
+from supplychain_simulation import Edge, LeadTime, SupplyChain
+from supplychain_simulation.node import Orders, Sales, Stock
+from supplychain_simulation.pipeline import Pipeline, Receipt
 from supplychain_simulation.utils import parse
 
 

@@ -1,13 +1,9 @@
-from typing import Iterable, Iterator
-
 import pytest
 
+from supplychain_simulation import Edge
 from supplychain_simulation.leadtime import LeadTime
-from supplychain_simulation.node import Node, Stock
-from supplychain_simulation.pipeline import Pipeline
-from supplychain_simulation.receipt import Receipt
-from supplychain_simulation.sales import Sales
-from supplychain_simulation.simulator import Edge
+from supplychain_simulation.node import Node, Sales, Stock
+from supplychain_simulation.pipeline import Pipeline, Receipt
 
 
 def test_assemblies_feasible():

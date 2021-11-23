@@ -6,7 +6,10 @@ from supplychain_simulation.node import Node, Orders
 
 
 class Fractional:
+    """Fractional implementation of the supply-chain release strategy"""
+
     def get_releases(self, node: Node) -> Orders:
+        """Build a set of Orders that should be released"""
         releases = Orders()
         orders = node.orders
         stock = node.stock[node]

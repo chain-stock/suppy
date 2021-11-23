@@ -6,8 +6,6 @@ from typing import (
     TYPE_CHECKING,
     AbstractSet,
     Any,
-    Generic,
-    Iterator,
     Protocol,
     TypeVar,
     Union,
@@ -20,28 +18,40 @@ if TYPE_CHECKING:
 
 
 class LeadTimeStrategy(Protocol):
+    """Interface for a Node's lead-time"""
+
     @abstractmethod
     def get_lead_time(self, period: int) -> int:
+        """Should return the lead-time for the provided period"""
         ...
 
 
 class SalesStrategy(Protocol):
+    """Interface for a Node's sales"""
+
     @abstractmethod
     def pop_sales(self, period: int) -> list[int]:
+        """Should return the order lines for the provided period"""
         ...
 
 
 @runtime_checkable
 class ControlStrategy(Protocol):
+    """Interface for the SupplyChain's control_strategy"""
+
     @abstractmethod
     def get_order_quantity(self, node: Node, period: int) -> int:
+        """Should return the number of orders to place for `node` at `period`"""
         ...
 
 
 @runtime_checkable
 class ReleaseStrategy(Protocol):
+    """Interface for the SupplyChain's release_strategy"""
+
     @abstractmethod
     def get_releases(self, node: Node) -> Orders:
+        """Should return the orders to release"""
         ...
 
 
@@ -95,9 +105,3 @@ class IdDict(UserDict[Union[_TId, str], _V]):
     def __contains__(self, key: Any) -> bool:
         """Ensure "'x' in IdDict()" works"""
         return self._key(key) in self.data
-
-    def values(self) -> ValuesView[_V]:
-        return super().values()
-
-    def items(self) -> AbstractSet[tuple[str | _TId, _V]]:
-        return super().items()

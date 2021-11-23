@@ -4,8 +4,9 @@ import logging
 from dataclasses import dataclass
 from typing import Iterator
 
+from .edge import Edge
 from .node import Node, Orders
-from .receipt import Receipt
+from .pipeline import Receipt
 from .types import ControlStrategy, IdDict, ReleaseStrategy
 
 logger = logging.getLogger(__name__)
@@ -20,48 +21,44 @@ class Inventory(IdDict[Node, int]):
         return 0
 
 
-@dataclass(frozen=True, eq=True)
-class Edge:
-    """A relation between to nodes
+class SupplyChain:
+    """The supply-chain to simulate
 
-    Attributes:
-        source (supplychain_simulation.node.Node): The predecessor of the `destination` Node
-        destination (supplychain_simulation.node.Node): The successor of the `source` Node
-        number (int): The amount of `source` needed to make `destination`
+    A supply-chain consists of Nodes and Edges between those Nodes
+    Edges can be supplied either through `edges` or as part of the Node.predecessors field
+
+    Arguments:
+        nodes: The list of Nodes in the supply-chain
+        edges: The list of edges in the supply-chain
+            Will be used to set the `Node.predecessors`
+
+    Raises:
+        ValueError: if an Edge is defined while it's source or destination Node does not exist
+
     """
 
-    source: str
-    destination: str
-    number: int
-
-    def __str__(self) -> str:
-        return f"{self.source}->{self.destination}: {self.number}"
-
-    @property
-    def id(self) -> str:
-        return f"{self.source}->{self.destination}"
-
-
-class SupplyChain:
-    _nodes: IdDict[Node, Node]
-    _edges: IdDict[Edge, Edge]
+    nodes: IdDict[Node, Node]
+    edges: IdDict[Edge, Edge]
 
     def __init__(
         self, nodes: list[Node] | None = None, edges: list[Edge] | None = None
     ):
         nodes = [] if nodes is None else nodes
         edges = [] if edges is None else edges
-        # Convert the provided nodes and edges into dict for faster lookup
-        self._nodes = IdDict({node: node for node in nodes})
-        self._edges = IdDict({edge: edge for edge in edges})
+        # Convert the provided nodes and edges into dict for easy lookup
+        self.nodes = IdDict({node: node for node in nodes})
+        self.edges = IdDict({edge: edge for edge in edges})
         self.__post_init__()
 
     def __post_init__(self) -> None:
-        """Make sure all edges are added to the correct node predecessors
+        """Initialize the Node"""
+        self._check_edges()
+        self._check_nodes()
+        self.set_llc()
 
-        also ensure any edge defined on a node exists in self.edges
-        """
-        for edge in self._edges.values():
+    def _check_edges(self) -> None:
+        """Check if all provided edges are valid and add them to the `Node.predecessors`"""
+        for edge in self.edges.values():
             if not self.node_exists(edge.source):
                 raise ValueError(
                     f"Edge {edge} defines unknown source node {edge.source}"
@@ -75,38 +72,31 @@ class SupplyChain:
             if edge not in destination.predecessors:
                 destination.predecessors.append(edge)
 
+    def _check_nodes(self) -> None:
+        """Add any Edge defined on a Node.predecessors to the list of edges"""
         for node in self.nodes.values():
             for edge in node.predecessors:
                 if not self.edge_exists(edge):
-                    self.add_edge(edge)
-
-        self.set_llc()
-
-    def add_node(self, node: Node) -> None:
-        self.nodes[node] = node
-        for edge in node.predecessors:
-            if not self.edge_exists(edge):
-                self.add_edge(edge)
-
-    def get_node(self, node: str) -> Node:
-        return self._nodes[node]
-
-    def add_edge(self, edge: Edge) -> None:
-        self._edges[edge] = edge
+                    self.edges[edge] = edge
 
     def node_exists(self, node: str | Node) -> bool:
-        return node in self._nodes
+        """Return True if `node` is part of this supply-chain
+
+        A Node is considered a match if `node.id` exists in this supply-chain
+        no further equality check is done
+        """
+        return node in self.nodes
 
     def edge_exists(self, edge: str | Edge) -> bool:
-        return edge in self._edges
+        """Return True is `edge` is part of this supply-chain
 
-    @property
-    def nodes(self) -> IdDict[Node, Node]:
-        """Iterate over all the nodes in the supplychain"""
-        return self._nodes
+        An edge is considered a match if `edge.id` exists in this supply-chain
+        no further equality check is done
+        """
+        return edge in self.edges
 
     def set_llc(self) -> None:
-        """Determine the low-level-code for each node"""
+        """Set the low-level-code for each node"""
         for node in self.nodes.values():
             if node.supplier:
                 continue
@@ -129,7 +119,7 @@ class SupplyChain:
 
     @property
     def max_llc(self) -> int:
-        """Return the maximum llc in the supplychain"""
+        """Return the maximum llc in the supply-chain"""
         return max(node.llc for node in self.nodes.values())
 
     def nodes_by_llc(self, llc: int) -> Iterator[Node]:
@@ -213,7 +203,17 @@ class SupplyChain:
 class Simulator:
     """SupplyChain Simulator
 
-    Simulate a supplychain using the provided control and release strategy
+    Simulate a supply-chain using the provided control and release strategy
+
+    Arguments:
+        supply_chain: the supply-chain to simulate
+        control_strategy: Determines how orders are created during the simulation
+            should adhere to the ControlStrategy Protocol
+        release_strategy: Determines how orders are released from each Node during simulation
+            should adhere to the ReleaseStrategy Protocol
+
+    Raises:
+        ValueError: if the strategies don't implement the correct Protocol
     """
 
     supply_chain: SupplyChain
@@ -223,8 +223,14 @@ class Simulator:
     def __post_init__(self) -> None:
         """Check if the provided strategies implement the correct interface"""
         # TODO: change to pydantic to add runtime type checking
-        assert isinstance(self.control_strategy, ControlStrategy)
-        assert isinstance(self.release_strategy, ReleaseStrategy)
+        if not isinstance(self.control_strategy, ControlStrategy):
+            raise ValueError(
+                "Provided control_strategy is not compatible with the ControlStrategy Protocol"
+            )
+        if not isinstance(self.release_strategy, ReleaseStrategy):
+            raise ValueError(
+                "Provided release_strategy is not compatible with the ReleaseStrategy Protocol"
+            )
 
     def run(self, *, start_period: int = 0, end_period: int) -> None:
         """Run the simulation for the provided periods"""
@@ -237,6 +243,7 @@ class Simulator:
             self.simulate_period(period)
 
     def simulate_period(self, period: int) -> None:
+        """Simulate a single period"""
         # accept receipts
         for node in self.supply_chain.nodes.values():
             node.satisfy_received_receipts()

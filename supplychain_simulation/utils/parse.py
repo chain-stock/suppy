@@ -5,12 +5,14 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Optional, Type, TypedDict, TypeVar, Union
 
-from supplychain_simulation import Edge, LeadTime, Node, Sales, SupplyChain
-from supplychain_simulation.node import Orders, Stock
-from supplychain_simulation.pipeline import Pipeline
-from supplychain_simulation.receipt import Receipt
+from ..edge import Edge
+from ..leadtime import LeadTime
+from ..node import Node, Orders, Sales, Stock
+from ..pipeline import Pipeline, Receipt
+from ..simulator import SupplyChain
 
-ListOrDictType = Union[list[Any], dict[str, Any], None]
+SalesJson = Union[list[list[int]], dict[str, list[int]]]
+LeadTimeJson = Union[list[int], dict[str, int]]
 
 
 class ReceiptDict(TypedDict):
@@ -25,8 +27,8 @@ class NodeDict(TypedDict):
     """Dict representation of a Node"""
 
     id: str
-    sales: ListOrDictType
-    lead_time: ListOrDictType
+    sales: SalesJson
+    lead_time: LeadTimeJson
     backorders: int
     data: dict[Any, Any]
     pipeline: Optional[list[ReceiptDict]]
@@ -43,6 +45,7 @@ class EdgeDict(TypedDict):
 
 
 def supplychain_from_json(file: PathLike[str]) -> SupplyChain:
+    """Convert a JSON file to a SupplyChain instance"""
     return supplychain_from_jsons(Path(file).read_text())
 
 
@@ -80,32 +83,47 @@ def supplychain_from_jsons(json_data: str | bytes) -> SupplyChain:
     return SupplyChain(nodes=nodes, edges=edges)
 
 
-def parse_sales(sales: ListOrDictType, /) -> Sales | None:
+def parse_sales(sales: SalesJson | None, /) -> Sales | None:
+    """Build a Sales object from the provided JSON data
+
+    The json data can either be of type list[list[int]] or
+    dict[str, list[int]] where the dict key is the period index
+    """
     return parse_list_or_dict(sales, return_type=Sales)
 
 
-def parse_leadtime(lead_time: ListOrDictType, /) -> LeadTime | None:
+def parse_leadtime(lead_time: LeadTimeJson | None, /) -> LeadTime | None:
+    """Build a LeadTime object from the provided JSON data
+
+    The json data can either be of type list[int] or dict[str, int]
+    where the key is the period index
+    """
+    # TODO: allow setting the default for lead-time
     return parse_list_or_dict(lead_time, return_type=LeadTime)
 
 
 def parse_pipeline(pipeline: list[ReceiptDict] | None) -> Pipeline | None:
+    """Build a Pipeline object from the provided JSON data"""
     if not pipeline:
         return None
     return Pipeline([Receipt(**receipt) for receipt in pipeline])
 
 
 def parse_stock(stock: dict[str, int] | None) -> Stock | None:
+    """Build a Stock object from the provided JSON data"""
     if not stock:
         return None
     return Stock(**stock)
 
 
 def parse_orders(orders: dict[str, int] | None) -> Orders | None:
+    """Build an Orders object from the provided JSON data"""
     if not orders:
         return None
     return Orders(**orders)
 
 
+ListOrDictType = Union[list[Any], dict[str, Any], None]
 _Thing = TypeVar("_Thing", Sales, LeadTime)
 
 
