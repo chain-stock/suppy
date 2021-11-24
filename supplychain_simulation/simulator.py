@@ -9,8 +9,6 @@ from .node import Node, Orders
 from .pipeline import Receipt
 from .types import ControlStrategy, IdDict, ReleaseStrategy
 
-logger = logging.getLogger(__name__)
-
 
 class Inventory(IdDict[Node, int]):
     """Inventory level of a node"""
@@ -91,7 +89,7 @@ class SupplyChain:
         return node in self.nodes
 
     def edge_exists(self, edge: str | Edge) -> bool:
-        """Return True is `edge` is part of this supply-chain
+        """Return True if `edge` is part of this supply-chain
 
         An edge is considered a match if `edge.id` exists in this supply-chain
         no further equality check is done
@@ -205,7 +203,6 @@ class SupplyChain:
                 quantity=quantity,
             )
             release_node.pipeline.add_receipt(receipt)
-            logger.debug("\tNode %s: %s added to pipeline", release_node, receipt)
 
             node.stock[node] -= quantity
             node.orders[release_node] -= quantity
@@ -257,14 +254,7 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
-        logger.info(
-            "Simulate periods %s -> %s," " %s periods",
-            start_period,
-            end_period,
-            end_period - start_period + 1,
-        )
         for period in range(start_period, end_period + 1):
-            logger.info("Simulating period %s", period)
             self.simulate_period(period)
 
     def simulate_period(self, period: int) -> None:

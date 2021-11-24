@@ -9,18 +9,14 @@ from .edge import Edge
 from .leadtime import LeadTime
 from .pipeline import Pipeline, Receipt
 from .types import IdDict, LeadTimeStrategy, SalesStrategy
-
-logger = logging.getLogger(__name__)
+from .utils.metrics import log_event
 
 
 class Sales(UserDict[int, list[int]]):
     """dict of sales per period"""
 
     def pop_sales(self, period: int) -> list[int]:
-        """Remove and return the sales for a specific period
-
-        If there were no sales for the period, returns 0
-        """
+        """Remove and return the order-lines for a specific period"""
         return self.data.pop(period, [])
 
 
@@ -91,7 +87,7 @@ class Node:  # pylint: disable=too-many-instance-attributes
         """Hash by the Node ID
 
         Allow using a Node as a key in a dict
-        Be aware that this hash does not uniquely identifies this instance
+        Be aware that this hash does not uniquely identify this instance
         and should not be relied upon to ensure uniqueness
         """
         return hash(f"{self.id}")
@@ -139,19 +135,12 @@ class Node:  # pylint: disable=too-many-instance-attributes
     def satisfy_received_receipts(self) -> None:
         """Update the stock with the received receipts from the pipeline"""
         received_receipts = self.pipeline.pop_received()
-        logger.debug("Node %s: %s receipts received", self, len(received_receipts))
         self.stock.add_received(received_receipts)
 
     def satisfy_backorders(self) -> None:
         """Send out any backorders we can satisfy from stock"""
         if self.backorders:
             feasible = min(self.stock[self], self.backorders)
-            logger.debug(
-                "Node %s: %s/%s backorders satisfied",
-                self,
-                feasible,
-                self.backorders,
-            )
             self.backorders -= feasible
             self.stock[self] -= feasible
 
@@ -160,18 +149,37 @@ class Node:  # pylint: disable=too-many-instance-attributes
 
         adds backorders for any sales that could not be satisfied
         """
-        sales = sum(self.sales.pop_sales(period))
-        feasible = min(self.stock[self], sales)
+        order_lines = self.sales.pop_sales(period)
+        sales = sum(order_lines)
+
+        feasible: int = min(self.stock[self], sales)
         backorders = sales - feasible
-        self.stock[self] -= feasible
-        self.backorders += backorders
-        logger.debug(
-            "Node %s: %s/%s sales satisfied (%s backorders)",
-            self,
-            feasible,
-            sales,
-            backorders,
-        )
+        satisfied_order_lines = 0
+        if feasible:
+            self.stock[self] -= feasible
+
+            log_event(node=self, event="sales", quantity=feasible, period=period)
+            # find number of order-lines satisfied
+            total = 0
+            for satisfied_order_lines, quantity in enumerate(order_lines):
+                total += quantity
+                if total > feasible:
+                    break
+            log_event(
+                node=self,
+                event="order-lines",
+                quantity=satisfied_order_lines,
+                period=period,
+            )
+        if backorders:
+            self.backorders += backorders
+            log_event(node=self, event="backorders", quantity=backorders, period=period)
+            log_event(
+                node=self,
+                event="order-lines-backordered",
+                quantity=len(order_lines) - satisfied_order_lines,
+                period=period,
+            )
 
     def assemble(self) -> None:
         """Assemble this node where possible
@@ -182,7 +190,6 @@ class Node:  # pylint: disable=too-many-instance-attributes
         for edge in self.predecessors:
             self.stock[edge.source] -= feasible * edge.number
         self.stock[self] += feasible
-        logger.debug("Node %s: Assembled %s", self, feasible)
 
     def get_lead_time(self, period: int) -> int:
         """Return the lead-time of this Node at the provided period"""
@@ -229,4 +236,3 @@ class Stock(IdDict[Node, int]):
         """Add the received receipts to the stock"""
         for receipt in received:
             self[receipt.sku_code] += receipt.quantity
-            logger.debug("\t%s %s added to stock", receipt.quantity, receipt.sku_code)
