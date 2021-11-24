@@ -32,6 +32,10 @@ class LeadTime(UserDict[int, int]):
             return self.default
         raise KeyError(key)
 
+    def __bool__(self) -> bool:
+        """Consider self True if default is set"""
+        return (len(self) != 0) | (self.default is not None)
+
     def get_lead_time(self, period: int) -> int:
         """Return the lead-time for a specific period
 

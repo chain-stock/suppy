@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from os import PathLike
 from pathlib import Path
-from typing import Any, Optional, Type, TypedDict, TypeVar, Union
+from typing import Any, Optional, TypedDict, TypeVar, Union
 
 from ..edge import Edge
 from ..leadtime import LeadTime
@@ -12,7 +12,12 @@ from ..pipeline import Pipeline, Receipt
 from ..simulator import SupplyChain
 
 SalesJson = Union[list[list[int]], dict[str, list[int]]]
-LeadTimeJson = Union[list[int], dict[str, int]]
+LeadTimeQueueJson = Union[list[int], dict[str, int]]
+
+
+class LeadTimeDict(TypedDict):
+    queue: LeadTimeQueueJson
+    default: int
 
 
 class ReceiptDict(TypedDict):
@@ -28,7 +33,7 @@ class NodeDict(TypedDict):
 
     id: str
     sales: SalesJson
-    lead_time: LeadTimeJson
+    lead_time: Union[LeadTimeDict, int]
     backorders: int
     data: dict[Any, Any]
     pipeline: Optional[list[ReceiptDict]]
@@ -96,17 +101,25 @@ def parse_sales(sales: SalesJson | None, /) -> Sales | None:
     The json data can either be of type list[list[int]] or
     dict[str, list[int]] where the dict key is the period index
     """
-    return parse_list_or_dict(sales, return_type=Sales)
+    return Sales(parse_list_or_dict(sales))
 
 
-def parse_leadtime(lead_time: LeadTimeJson | None, /) -> LeadTime | None:
+def parse_leadtime(lead_time: LeadTimeDict | int | None, /) -> LeadTime | None:
     """Build a LeadTime object from the provided JSON data
 
-    The json data can either be of type list[int] or dict[str, int]
-    where the key is the period index
+    Options:
+    1: `"lead_time": {"queue": [1,2,3], default: 42}` -> 42 except for the first 3 periods
+    2: `"lead_time": {"queue":{"23":4, "24":5}, default: 42}` -> 42 except in period 23 and 24
+    3: `"lead_time": 42` -> 42
     """
-    # TODO: allow setting the default for lead-time
-    return parse_list_or_dict(lead_time, return_type=LeadTime)
+    if not lead_time:
+        return None
+    if isinstance(lead_time, int):
+        return LeadTime(default=lead_time)
+
+    default = lead_time.get("default")
+    queue = lead_time.get("queue")
+    return LeadTime(parse_list_or_dict(queue), default=default)
 
 
 def parse_pipeline(pipeline: list[ReceiptDict] | None) -> Pipeline | None:
@@ -134,9 +147,7 @@ ListOrDictType = Union[list[Any], dict[str, Any], None]
 _Thing = TypeVar("_Thing", Sales, LeadTime)
 
 
-def parse_list_or_dict(
-    _thing: ListOrDictType, /, return_type: Type[_Thing]
-) -> _Thing | None:
+def parse_list_or_dict(_thing: ListOrDictType, /) -> dict[int, Any] | None:
     """Accepts a list with lists of sales or a dict with sales per period
 
     so that:
@@ -148,11 +159,10 @@ def parse_list_or_dict(
         return None
 
     if isinstance(_thing, list):
-        thing = return_type({idx + 1: line for idx, line in enumerate(_thing)})
+        return {idx + 1: line for idx, line in enumerate(_thing)}
     elif isinstance(_thing, dict):
-        thing = return_type({int(key): value for key, value in _thing.items()})
+        return {int(key): value for key, value in _thing.items()}
     else:
         raise ValueError(
             f"Unknown sales type {type(_thing)} ({_thing}), expected list or dict"
         )
-    return thing

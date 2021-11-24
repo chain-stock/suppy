@@ -17,9 +17,11 @@ def test_supplychain_from_json(tmp_path):
                     [1, 2, 3],
                     [4]
                 ],
-                "lead_time": [
-                    1, 2, 3, 4
-                ],
+                "lead_time": {
+                    "queue": [
+                        1, 2, 3, 4
+                    ]
+                },
                 "backorders": 5,
                 "pipeline": [
                     {
@@ -44,8 +46,11 @@ def test_supplychain_from_json(tmp_path):
                     "2": [8]
                 },
                 "lead_time": {
-                    "1": 5,
-                    "2": 6
+                    "queue": {
+                        "1": 5,
+                        "2": 6
+                    },
+                    "default": 42
                 }
             }
         ],
@@ -124,6 +129,9 @@ def test_supplychain_from_json(tmp_path):
     assert isinstance(node_b.lead_time, LeadTime)
     assert node_a.lead_time == {1: 1, 2: 2, 3: 3, 4: 4}
     assert node_b.lead_time == {1: 5, 2: 6}
+    with pytest.raises(KeyError):
+        node_a.lead_time.get_lead_time(5)
+    assert node_b.lead_time.get_lead_time(5) == 42
 
     assert node_a.backorders == 5
     assert node_b.backorders == 0
@@ -174,6 +182,29 @@ def test_supplychain_from_json_minimal(tmp_path):
     assert node_a.stock == {}
     assert isinstance(node_a.orders, Orders)
     assert node_a.orders == {}
+
+
+def test_supplychain_from_json_lead_time_default(tmp_path):
+    """Test if we can only supply a default for lead_time"""
+    json_data = """
+    {
+        "nodes": [
+            {
+                "id": "A",
+                "lead_time": 6
+            }
+        ]
+    }
+    """
+
+    result = parse.supplychain_from_jsons(json_data)
+
+    assert result.node_exists("A")
+
+    node_a = result.nodes["A"]
+
+    assert node_a.lead_time == {}
+    assert node_a.lead_time.get_lead_time(66) == 6
 
 
 def test_parse_sales_invalid_type():

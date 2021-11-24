@@ -7,10 +7,6 @@ authors = ["Luuk Gijben <l.gijben@chain-stock.com>","Allex Veldman <a.veldman@ch
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pandas = "*"
-networkx = "*"
-simplejson = "*"
-openpyxl = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
