@@ -47,4 +47,7 @@ class LeadTime(UserDict[int, int]):
         Raises:
             KeyError
         """
-        return self[period]
+        try:
+            return self[period]
+        except KeyError:
+            raise ValueError(f"No lead-time set for period {period}")

@@ -8,7 +8,8 @@ class Edge:
     Arguments:
         source: The predecessor of the `destination` Node
         destination: The successor of the `source` Node
-        number: The amount of `source` needed to make `destination`
+        number: The amount of `source` needed to make `destination`.
+            should be > 0
     """
 
     source: str
@@ -19,3 +20,8 @@ class Edge:
     def id(self) -> str:
         """Provide the id attribute so we can be used as a key in an IdDict"""
         return f"{self.source}->{self.destination}"
+
+    def __post_init__(self) -> None:
+        """Ensure that number is > 0"""
+        if self.number <= 0:
+            raise ValueError("Edge.number must more than 0")

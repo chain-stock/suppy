@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections import UserDict
 from dataclasses import dataclass, field
-from typing import Any, Union
+from typing import Any, Optional, Union
+
+from typeguard import typechecked
 
 from .edge import Edge
 from .leadtime import LeadTime
@@ -13,6 +15,12 @@ from .utils.metrics import log_event
 
 class Sales(UserDict[int, list[int]]):
     """dict of sales per period"""
+
+    @typechecked
+    def __init__(
+        self, _dict: Optional[dict[int, list[int]]] = None, /, **kwargs: list[int]
+    ):
+        super().__init__(_dict, **kwargs)
 
     def pop_sales(self, period: int) -> list[int]:
         """Remove and return the order-lines for a specific period"""
@@ -58,8 +66,6 @@ class Node:  # pylint: disable=too-many-instance-attributes
     """
 
     id: str
-    # TODO: make lead_time mandatory
-    #   The default right now will still result in an error when run
     lead_time: LeadTimeStrategy = field(default_factory=LeadTime)
     sales: SalesStrategy = field(default_factory=Sales)
     predecessors: list[Edge] = field(default_factory=list)
@@ -122,12 +128,6 @@ class Node:  # pylint: disable=too-many-instance-attributes
         # for supplier skus
         else:
             feasible = 0
-
-        # the number of items that can be assembled is non-negative.
-        # this check should be unnecessary.
-        # TODO: restrict Stock values and Edge.number to >= 0
-        #   Than this max() is no longer needed and a proper error is raised
-        feasible = max(feasible, 0)
 
         return feasible
 
@@ -218,13 +218,22 @@ class Orders(IdDict[Node, int]):
 class Stock(IdDict[Node, int]):
     """Stock levels at a specific node
 
-    Each node can have stock for itself any any other node
+    Each node can have stock for itself and any other node
 
     To get the stock level, use the ID of a node or the Node instance itself:
     ```
     stock["A"] == stock[Node("A")]
     ```
     """
+
+    def __setitem__(self, key: str | Node, value: int) -> None:
+        """Set the stock for key
+
+        Ensures the stock can never become negative
+        """
+        if value < 0:
+            raise ValueError(f"Stock for {key} can't go below zero")
+        super().__setitem__(key, value)
 
     def __missing__(self, key: str | Node) -> int:
         """When a key is missing, default to 0"""

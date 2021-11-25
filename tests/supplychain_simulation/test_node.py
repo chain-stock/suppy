@@ -181,3 +181,23 @@ def test_get_lead_time_per_period():
     assert node.get_lead_time(period=1) == 14
     assert node.get_lead_time(period=10) == 12
     assert node.get_lead_time(period=5) == 10
+
+
+def test_sales_invalid():
+    """Test if an error is raised when providing the wrong data"""
+    with pytest.raises(TypeError):
+        Sales({"1": [1]})  # type: ignore
+
+
+def test_stock_negative():
+    """Test if an error is raised if the stock drops below zero"""
+    with pytest.raises(ValueError):
+        Stock({"A": -1})
+
+    stock = Stock()
+    with pytest.raises(ValueError):
+        stock["A"] = -2
+
+    stock["A"] = 0
+    with pytest.raises(ValueError):
+        stock["A"] -= 1

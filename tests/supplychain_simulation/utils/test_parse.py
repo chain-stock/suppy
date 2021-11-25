@@ -129,7 +129,7 @@ def test_supplychain_from_json(tmp_path):
     assert isinstance(node_b.lead_time, LeadTime)
     assert node_a.lead_time == {1: 1, 2: 2, 3: 3, 4: 4}
     assert node_b.lead_time == {1: 5, 2: 6}
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         node_a.lead_time.get_lead_time(5)
     assert node_b.lead_time.get_lead_time(5) == 42
 

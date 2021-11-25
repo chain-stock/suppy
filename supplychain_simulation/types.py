@@ -16,7 +16,14 @@ class LeadTimeStrategy(Protocol):
 
     @abstractmethod
     def get_lead_time(self, period: int) -> int:  # pragma: no cover
-        """Should return the lead-time for the provided period"""
+        """Should return the lead-time for the provided period
+
+        Arguments:
+            period: The period to return the lead-time for
+
+        Raises:
+            ValueError: When there is no lead-time or default set for the requested period
+        """
         ...
 
 
