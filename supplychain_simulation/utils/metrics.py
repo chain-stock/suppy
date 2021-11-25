@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import IO, TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from supplychain_simulation import Node
@@ -16,13 +17,20 @@ logger.propagate = False
 
 
 def setup_metrics(
-    filename: PathLike[str] | None = None, level: int = logging.INFO, **kwargs: Any
+    filename: PathLike[str] | None = None,
+    level: int = logging.INFO,
+    stream: Optional[IO[str]] = None,
+    **kwargs: Any
 ) -> None:
     """Setup the metrics
 
     Arguments:
         filename: if provided output the metrics to this file,
             outputs to stdout by default
+        level: log level to set for the metrics logger
+            by default all metrics are logged on level INFO, setting this to a higher
+            value will disable the metrics logs
+        stream: stream to use for the StreamHandler, stdout by default.
         **kwargs: Additional arguments for the RotatingFileHandler
             if filename is provided
     """
@@ -36,7 +44,7 @@ def setup_metrics(
         file = Path(filename)
         handler: logging.Handler = RotatingFileHandler(file, **kwargs)
     else:
-        handler = logging.StreamHandler(sys.stdout)
+        handler = logging.StreamHandler(sys.stdout if stream is None else stream)
 
     # Format the log as json for easy parsing
     # The formatter expects the LogRecord to be create with extras:
@@ -49,7 +57,7 @@ def setup_metrics(
         '"node": "%(node)s", '
         '"event": "%(event)s", '
         '"quantity": "%(quantity)s", '
-        '"message": "%(message)s"'
+        '"message": %(message)s'
         "}"
     )
 
@@ -75,7 +83,7 @@ def log_event(
     node: Node,
     event: str,
     quantity: float,
-    message: str = "",
+    message: Any = "",
     level: int | None = logging.INFO,
 ) -> None:
     """Add an event to the metrics
@@ -95,4 +103,4 @@ def log_event(
         "quantity": quantity,
         "period": period,
     }
-    logger.log(level, message, extra=extra)
+    logger.log(level, json.dumps(message), extra=extra)

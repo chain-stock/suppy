@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
-from os import PathLike
-from typing import Iterator, Optional
+from typing import Any, Iterator, Optional
 
 from typeguard import check_type
 
@@ -10,7 +10,7 @@ from .edge import Edge
 from .node import Node, Orders
 from .pipeline import Receipt
 from .types import ControlStrategy, IdDict, ReleaseStrategy
-from .utils.metrics import setup_metrics, stop_metrics
+from .utils.metrics import log_event, setup_metrics, stop_metrics
 
 
 class Inventory(IdDict[Node, int]):
@@ -243,7 +243,7 @@ class Simulator:
         start_or_end_period: int,
         /,
         end_period: Optional[int] = None,
-        output_file: Optional[PathLike[str]] = None,
+        **metrics_kwargs: Any,
     ) -> None:
         """Run the simulation for a number of periods
 
@@ -258,10 +258,12 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
-        setup_metrics(output_file)
+        setup_metrics(**metrics_kwargs)
         try:
             for period in range(start_period, end_period + 1):
                 self.simulate_period(period)
+                for node in self.supply_chain.nodes.values():
+                    log_node_state(node, period=period)
         finally:
             stop_metrics()
 
@@ -300,3 +302,22 @@ class Simulator:
                 self.supply_chain.release_orders(
                     node=node, releases=order_releases, period=period
                 )
+
+
+def log_node_state(node: Node, period: int) -> None:
+    """Add a debug metric of the state of node"""
+    node_state = {
+        "node.stock": node.stock.data,
+        "node.backorders": node.backorders,
+        "node.pipeline": [str(rcpt) for rcpt in node.pipeline],
+        "node.orders": node.orders.data,
+    }
+    for event, value in node_state.items():
+        log_event(
+            level=logging.DEBUG,
+            node=node,
+            period=period,
+            event=event,
+            quantity=0,
+            message=value,
+        )

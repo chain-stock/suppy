@@ -14,7 +14,8 @@ from supplychain_simulation.strategy.release.fractional import Fractional
 @patch("supplychain_simulation.simulator.Simulator.simulate_period")
 def test_simulator_run(sim_period_mock, run_args):
     """Test the different calls to run"""
-    sim = Simulator(None, MagicMock(), MagicMock())  # type: ignore
+    sc = SupplyChain()
+    sim = Simulator(sc, MagicMock(), MagicMock())
     sim.run(*run_args)
     sim_period_mock.assert_has_calls(
         [
@@ -89,7 +90,7 @@ def test_simulate_period():
     sim = Simulator(
         control_strategy=RSQ(sc), release_strategy=Fractional(), supply_chain=sc
     )
-    sim.simulate_period(1)
+    sim.run(1)
 
     assert sc.nodes["A"].pipeline == [
         Receipt(sku_code="C", eta=1, quantity=60),
