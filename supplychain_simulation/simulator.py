@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from os import PathLike
 from typing import Iterator, Optional
 
 from typeguard import check_type
@@ -9,6 +10,7 @@ from .edge import Edge
 from .node import Node, Orders
 from .pipeline import Receipt
 from .types import ControlStrategy, IdDict, ReleaseStrategy
+from .utils.metrics import setup_metrics, stop_metrics
 
 
 class Inventory(IdDict[Node, int]):
@@ -221,6 +223,7 @@ class Simulator:
             should adhere to the ControlStrategy Protocol
         release_strategy: Determines how orders are released from each Node during simulation
             should adhere to the ReleaseStrategy Protocol
+        output_file: File to write the metrics to, metrics will emit to stdout if not set
 
     Raises:
         ValueError: if the strategies don't implement the correct Protocol
@@ -236,7 +239,11 @@ class Simulator:
         check_type("release_strategy", self.release_strategy, ReleaseStrategy)
 
     def run(
-        self, start_or_end_period: int, /, end_period: Optional[int] = None
+        self,
+        start_or_end_period: int,
+        /,
+        end_period: Optional[int] = None,
+        output_file: Optional[PathLike[str]] = None,
     ) -> None:
         """Run the simulation for a number of periods
 
@@ -251,8 +258,12 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
-        for period in range(start_period, end_period + 1):
-            self.simulate_period(period)
+        setup_metrics(output_file)
+        try:
+            for period in range(start_period, end_period + 1):
+                self.simulate_period(period)
+        finally:
+            stop_metrics()
 
     def simulate_period(self, period: int) -> None:
         """Simulate a single period"""

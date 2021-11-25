@@ -3,7 +3,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Optional, TypedDict, TypeVar, Union
 
-from typeguard import check_type, typechecked
+from typeguard import check_type
 
 from ..edge import Edge
 from ..leadtime import LeadTime
@@ -16,6 +16,8 @@ LeadTimeQueueJson = Union[list[int], dict[str, int]]
 
 
 class LeadTimeDict(TypedDict, total=False):
+    """Dict representation of a LeadTime"""
+
     queue: LeadTimeQueueJson
     default: int
 
@@ -167,6 +169,6 @@ def parse_list_or_dict(_thing: ListOrDictType, /) -> Optional[dict[int, Any]]:
 
     if isinstance(_thing, list):
         return {idx + 1: line for idx, line in enumerate(_thing)}
-    elif isinstance(_thing, dict):
+    if isinstance(_thing, dict):
         return {int(key): value for key, value in _thing.items()}
     return None

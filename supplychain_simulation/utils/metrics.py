@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from supplychain_simulation import Node
@@ -15,24 +16,27 @@ logger.propagate = False
 
 
 def setup_metrics(
-    filename: PathLike[str] | None = None, level: int = logging.INFO
+    filename: PathLike[str] | None = None, level: int = logging.INFO, **kwargs: Any
 ) -> None:
     """Setup the metrics
 
     Arguments:
         filename: if provided output the metrics to this file,
             outputs to stdout by default
+        **kwargs: Additional arguments for the RotatingFileHandler
+            if filename is provided
     """
-    if filename is not None:
-        file = Path(filename)
-        handler: logging.Handler = logging.FileHandler(file, encoding="utf-8")
-    else:
-        handler = logging.StreamHandler(sys.stdout)
-
+    kwargs["encoding"] = "utf-8" if "encoding" not in kwargs else kwargs["encoding"]
     # Remove any existing handlers
     if logger.hasHandlers():
-        for handler in list(logger.handlers):
-            logger.removeHandler(handler)
+        for hndlr in list(logger.handlers):
+            logger.removeHandler(hndlr)
+
+    if filename is not None:
+        file = Path(filename)
+        handler: logging.Handler = RotatingFileHandler(file, **kwargs)
+    else:
+        handler = logging.StreamHandler(sys.stdout)
 
     # Format the log as json for easy parsing
     # The formatter expects the LogRecord to be create with extras:
@@ -52,6 +56,18 @@ def setup_metrics(
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(level)
+
+
+def stop_metrics() -> None:
+    """Flush the collected metrics and remove the handler
+
+    Ensures the metrics are flushed to disk and the file is closed
+    """
+    # by default only a single handler should be available
+    # but if someone tapped into the logger, we'll close all handlers
+    for handler in logger.handlers:
+        handler.flush()
+        handler.close()
 
 
 def log_event(

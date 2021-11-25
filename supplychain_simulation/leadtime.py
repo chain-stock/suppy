@@ -50,4 +50,4 @@ class LeadTime(UserDict[int, int]):
         try:
             return self[period]
         except KeyError:
-            raise ValueError(f"No lead-time set for period {period}")
+            raise ValueError(f"No lead-time set for period {period}") from None

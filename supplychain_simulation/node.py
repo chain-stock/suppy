@@ -164,12 +164,13 @@ class Node:  # pylint: disable=too-many-instance-attributes
                 total += quantity
                 if total > feasible:
                     break
-            log_event(
-                node=self,
-                event="order-lines",
-                quantity=satisfied_order_lines,
-                period=period,
-            )
+            if satisfied_order_lines:
+                log_event(
+                    node=self,
+                    event="order-lines",
+                    quantity=satisfied_order_lines,
+                    period=period,
+                )
         if backorders:
             self.backorders += backorders
             log_event(node=self, event="backorders", quantity=backorders, period=period)
