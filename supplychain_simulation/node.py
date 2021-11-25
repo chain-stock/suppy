@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import logging
 from collections import UserDict
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Union
 
 from .edge import Edge
 from .leadtime import LeadTime
@@ -206,7 +205,7 @@ class Orders(IdDict[Node, int]):
     ```
     """
 
-    def __missing__(self, key: str | Node) -> int:
+    def __missing__(self, key: Union[str, Node]) -> int:
         """When a key is missing, create the key and default to 0"""
         self.__setitem__(key, 0)
         return 0

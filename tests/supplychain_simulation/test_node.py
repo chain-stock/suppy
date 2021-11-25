@@ -2,7 +2,7 @@ import pytest
 
 from supplychain_simulation import Edge
 from supplychain_simulation.leadtime import LeadTime
-from supplychain_simulation.node import Node, Sales, Stock
+from supplychain_simulation.node import Node, Orders, Sales, Stock
 from supplychain_simulation.pipeline import Pipeline, Receipt
 
 

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Iterator, Optional
+
+from typeguard import check_type
 
 from .edge import Edge
 from .node import Node, Orders
@@ -231,16 +232,12 @@ class Simulator:
 
     def __post_init__(self) -> None:
         """Check if the provided strategies implement the correct interface"""
-        if not isinstance(self.control_strategy, ControlStrategy):
-            raise ValueError(
-                "Provided control_strategy is not compatible with the ControlStrategy Protocol"
-            )
-        if not isinstance(self.release_strategy, ReleaseStrategy):
-            raise ValueError(
-                "Provided release_strategy is not compatible with the ReleaseStrategy Protocol"
-            )
+        check_type("control_strategy", self.control_strategy, ControlStrategy)
+        check_type("release_strategy", self.release_strategy, ReleaseStrategy)
 
-    def run(self, start_or_end_period: int, /, end_period: int | None = None) -> None:
+    def run(
+        self, start_or_end_period: int, /, end_period: Optional[int] = None
+    ) -> None:
         """Run the simulation for a number of periods
 
         Arguments:

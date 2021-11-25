@@ -102,9 +102,9 @@ def test_simulator_invalid_strategies():
     """Test if an error is raised when the provided strategies
     don't implement the correct interface"""
     sc = SupplyChain()
-    with pytest.raises(ValueError, match="control_strategy is not compatible"):
+    with pytest.raises(TypeError, match=r"control_strategy \(type\) is not compatible"):
         Simulator(sc, control_strategy=int, release_strategy=Fractional())  # type: ignore
-    with pytest.raises(ValueError, match="release_strategy is not compatible"):
+    with pytest.raises(TypeError, match=r"release_strategy \(type\) is not compatible"):
         Simulator(sc, control_strategy=RSQ(sc), release_strategy=int)  # type: ignore
 
 

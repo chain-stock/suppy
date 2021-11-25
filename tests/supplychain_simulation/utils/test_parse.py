@@ -158,7 +158,10 @@ def test_supplychain_from_json_minimal(tmp_path):
     {
         "nodes": [
             {
-                "id": "A"
+                "id": "A",
+                "lead_time": {
+                    "default": 42
+                }
             }
         ]
     }
@@ -207,8 +210,28 @@ def test_supplychain_from_json_lead_time_default(tmp_path):
     assert node_a.lead_time.get_lead_time(66) == 6
 
 
-def test_parse_sales_invalid_type():
-    """Test if an error is raised when the sales type is invalid"""
-    with pytest.raises(ValueError):
-        x = "foo"
-        parse.parse_sales(x)  # type: ignore[arg-type]
+@pytest.mark.parametrize(
+    "json_data",
+    (
+        '{"nodes": [{"id": 4}]}',
+        '{"nodes": [{"backorders": 4}]}',
+        '{"nodes": [{"id": "A", "sales": 5}]}',
+        '{"nodes": [{"id": "A", "stock": 5}]}',
+        '{"nodes": [{"id": "A", "orders": 5}]}',
+        '{"nodes": [{"id": "A", "backorders": "A"}]}',
+        '{"nodes": [{"id": "A", "data": "A"}]}',
+    ),
+    ids=[
+        "id-type",
+        "id-missing",
+        "sales-type",
+        "stock-type",
+        "orders-type",
+        "backorders-type",
+        "data-type",
+    ],
+)
+def test_parse_invalid_type(json_data):
+    """Test if an error is raised when the data type is invalid"""
+    with pytest.raises(TypeError):
+        parse.supplychain_from_jsons(json_data)

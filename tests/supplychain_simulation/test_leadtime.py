@@ -16,3 +16,9 @@ def test_leadtime_default():
     assert lt[1] == 5
     assert lt[2] == 5
     assert lt[3] == 3
+
+
+def test_leadtime_invalid():
+    """Test if an error is raised if we provide invalid leadtime data"""
+    with pytest.raises(TypeError):
+        leadtime.LeadTime({3: "A"})  # type: ignore

@@ -1,5 +1,8 @@
 from collections import UserList
 from dataclasses import dataclass
+from typing import Optional
+
+from typeguard import typechecked
 
 
 @dataclass
@@ -13,6 +16,10 @@ class Receipt:
 
 class Pipeline(UserList[Receipt]):
     """Contains all receipts for a specific node"""
+
+    @typechecked
+    def __init__(self, initlist: Optional[list[Receipt]] = None):
+        super().__init__(initlist)
 
     def pop_received(self) -> list[Receipt]:
         """Remove and return all receipts where the ETA is 0 or less"""

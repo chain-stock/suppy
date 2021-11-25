@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections import UserDict
-from typing import Mapping
+from typing import Optional
+
+from typeguard import typechecked
 
 
 class LeadTime(UserDict[int, int]):
@@ -11,12 +13,12 @@ class LeadTime(UserDict[int, int]):
     Raises KeyError for missing keys if default is not provided
     """
 
-    # TODO: verify values
+    @typechecked
     def __init__(
         self,
-        _dict: Mapping[int, int] | None = None,
+        _dict: Optional[dict[int, int]] = None,
         /,
-        default: int | None = None,
+        default: Optional[int] = None,
         **kwargs: int,
     ):
         super().__init__(_dict, **kwargs)
