@@ -15,3 +15,5 @@ tests/tests
 .scannerwork
 pylint-report.txt
 tests/debug.py
+junit.xml
+.ipynb_checkpoints/

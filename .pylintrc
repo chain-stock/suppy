@@ -1,0 +1,7 @@
+[MESSAGES CONTROL]
+# Disable the pylint continuation, this is handled by black
+disable=bad-continuation,missing-module-docstring
+enable=useless-suppression
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,logger,id

@@ -3,7 +3,19 @@ branch=true
 
 [html]
 directory = tests/results/htmlcov
-title = Coverage chainstock-simulation
+title = Coverage supplychain-simulation
 
 [xml]
 output = tests/results/coverage.xml
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+
+    # Type checking
+    if TYPE_CHECKING:
+
+    # Not implemented defaults
+    raise NotImplementedError

@@ -1,4 +1,6 @@
-import chainstock_simulation.order_release as orl
+from supplychain_simulation import Node
+from supplychain_simulation.node import Orders, Stock
+from supplychain_simulation.strategy import Fractional
 
 
 def test_fractional_feasible():
@@ -9,7 +11,9 @@ def test_fractional_feasible():
 
     stock = 70
 
-    order_release = orl.fractional(orders, stock)
+    node = Node("A", orders=Orders(**orders), stock=Stock({"A": stock}))
+
+    order_release = Fractional().get_releases(node=node)
 
     assert order_release == {
         "A": 20,
@@ -28,7 +32,9 @@ def test_fractional_infeasible():
     }
     stock = 7
 
-    order_release = orl.fractional(orders, stock)
+    node = Node("A", orders=Orders(**orders), stock=Stock({"A": stock}))
+
+    order_release = Fractional().get_releases(node=node)
 
     assert order_release == {
         "A": 3,
@@ -46,10 +52,8 @@ def test_fractional_no_order():
         "B": 0,
     }
     stock = 7
+    node = Node("A", orders=Orders(**orders), stock=Stock({"A": stock}))
 
-    order_release = orl.fractional(orders, stock)
+    order_release = Fractional().get_releases(node=node)
 
-    assert order_release == {
-        "A": 0,
-        "B": 0,
-    }
+    assert order_release == {}
