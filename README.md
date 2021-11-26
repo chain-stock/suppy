@@ -1,4 +1,4 @@
-# chainstock-simulation
+# supplychain-simulation
 
 ## Code style
 A pre-commit config is included in this repo.
