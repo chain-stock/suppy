@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections import UserDict
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar, Union, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Protocol,
+    TypedDict,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 if TYPE_CHECKING:
     from supplychain_simulation.node import Node, Orders
@@ -106,3 +114,15 @@ class IdDict(UserDict[Union[_TId, str], _V]):
     def __contains__(self, key: Any) -> bool:
         """Ensure "'x' in IdDict()" works"""
         return self._key(key) in self.data
+
+
+class MetricEntryType(TypedDict):
+    """Dict representation of a metrics entry"""
+
+    timestamp: str
+    level: str
+    period: str
+    node: str
+    event: str
+    quantity: str
+    message: str

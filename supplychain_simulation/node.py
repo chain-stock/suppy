@@ -113,6 +113,21 @@ class Node:  # pylint: disable=too-many-instance-attributes
         """
         return len(self.predecessors) == 0
 
+    def satisfy_received_receipts(self) -> None:
+        """Update the stock with the received receipts from the pipeline"""
+        received_receipts = self.pipeline.pop_received()
+        self.stock.add_received(received_receipts)
+
+    def assemble(self) -> None:
+        """Assemble this node where possible
+
+        In order to assemble the node, all needed quantities of all predecessors should be in stock
+        """
+        feasible = self.assemblies_feasible()
+        for edge in self.predecessors:
+            self.stock[edge.source] -= feasible * edge.number
+        self.stock[self] += feasible
+
     def assemblies_feasible(self, stock: IdDict[Node, int] | None = None) -> int:
         """Returns the number of self that could be assembled from stock
 
@@ -130,11 +145,6 @@ class Node:  # pylint: disable=too-many-instance-attributes
             feasible = 0
 
         return feasible
-
-    def satisfy_received_receipts(self) -> None:
-        """Update the stock with the received receipts from the pipeline"""
-        received_receipts = self.pipeline.pop_received()
-        self.stock.add_received(received_receipts)
 
     def satisfy_backorders(self) -> None:
         """Send out any backorders we can satisfy from stock"""
@@ -180,16 +190,6 @@ class Node:  # pylint: disable=too-many-instance-attributes
                 quantity=len(order_lines) - satisfied_order_lines,
                 period=period,
             )
-
-    def assemble(self) -> None:
-        """Assemble this node where possible
-
-        In order to assemble the node, all needed quantities of all predecessors should be in stock
-        """
-        feasible = self.assemblies_feasible()
-        for edge in self.predecessors:
-            self.stock[edge.source] -= feasible * edge.number
-        self.stock[self] += feasible
 
     def get_lead_time(self, period: int) -> int:
         """Return the lead-time of this Node at the provided period"""
