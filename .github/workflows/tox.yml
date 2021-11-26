@@ -1,4 +1,4 @@
-name: Test chainstock simulation
+name: Test supplychain-simulation
 
 on:
   push:
@@ -9,16 +9,35 @@ on:
 
 jobs:
   test:
-
-    runs-on: ubuntu-latest
+    name: test ${{ matrix.py }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        py:
+          - "3.9"
+          - "3.10"
+        include:
+          # Only collect reports for sonar scan on a single leg of the matrix
+          - os: ubuntu-latest
+            py: "3.9"
+            sonar: true
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2.4.0
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v1
+    - name: Set up Python ${{ matrix.py }}
+      uses: actions/setup-python@v2.3.0
+      id: python
       with:
-        python-version: 3.9
+        python-version: ${{ matrix.py }}
+
+    - name: Install dependencies
+      run: |
+        pip install -U pip
+        pip install tox tox-gh
 
     - name: Cache Tox
       uses: actions/cache@v2.1.6
@@ -28,31 +47,29 @@ jobs:
         restore-keys: ${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('tox.ini') }}-
 
     - name: Test with tox
-      run: |
-        pip install tox poetry
-        tox -e py39,pylint,security
+      run: python -m tox
 
     - name: Correct coverage report for SonarCloud scan
       run: sed -i 's?/home/runner/work/chainstock-simulation/chainstock-simulation?\.?g' tests/results/coverage.xml
-      if: always()
+      if: matrix.sonar
 
     - name: Upload python test results
       uses: actions/upload-artifact@v2.2.4
-      if: always()
+      if: matrix.sonar
       with:
         name: python-junit
         path: tests/results/junit.xml
 
     - name: Upload python coverage report
       uses: actions/upload-artifact@v2.2.4
-      if: always()
+      if: matrix.sonar
       with:
         name: python-coverage
         path: tests/results/coverage.xml
 
     - name: Upload pylint report
       uses: actions/upload-artifact@v2.2.4
-      if: always()
+      if: matrix.sonar
       with:
         name: pylint
         path: pylint-report.txt
