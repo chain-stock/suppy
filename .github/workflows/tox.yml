@@ -54,21 +54,21 @@ jobs:
       if: matrix.sonar
 
     - name: Upload python test results
-      uses: actions/upload-artifact@v2.3.0
+      uses: actions/upload-artifact@v2.3.1
       if: matrix.sonar
       with:
         name: python-junit
         path: tests/results/junit.xml
 
     - name: Upload python coverage report
-      uses: actions/upload-artifact@v2.3.0
+      uses: actions/upload-artifact@v2.3.1
       if: matrix.sonar
       with:
         name: python-coverage
         path: tests/results/coverage.xml
 
     - name: Upload pylint report
-      uses: actions/upload-artifact@v2.3.0
+      uses: actions/upload-artifact@v2.3.1
       if: matrix.sonar
       with:
         name: pylint
