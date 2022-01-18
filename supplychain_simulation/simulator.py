@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Iterator, Optional
 
+from tqdm import tqdm  # type: ignore
 from typeguard import check_type
 
 from .edge import Edge
@@ -260,7 +261,7 @@ class Simulator:
 
         setup_metrics(**metrics_kwargs)
         try:
-            for period in range(start_period, end_period + 1):
+            for period in tqdm(range(start_period, end_period + 1)):
                 self.simulate_period(period)
                 for node in self.supply_chain.nodes.values():
                     log_node_state(node, period=period)

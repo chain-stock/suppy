@@ -7,24 +7,23 @@ from supplychain_simulation.utils import metrics
 
 
 def test_setup_metrics(tmp_path):
-    """Test if we can run setup metrics mulitple times"""
+    """Test if we can run setup metrics multiple times"""
     logger = logging.getLogger("metrics")
     metrics.setup_metrics()
 
     assert len(logger.handlers) == 1
-    assert isinstance(logger.handlers[0], logging.StreamHandler)
-    assert not isinstance(logger.handlers[0], logging.FileHandler)
+    assert isinstance(logger.handlers[0], logging.FileHandler)
 
     metrics.setup_metrics()
 
     assert len(logger.handlers) == 1
-    assert isinstance(logger.handlers[0], logging.StreamHandler)
-    assert not isinstance(logger.handlers[0], logging.FileHandler)
-
-    metrics.setup_metrics(tmp_path / "metrics.json")
-
-    assert len(logger.handlers) == 1
     assert isinstance(logger.handlers[0], logging.FileHandler)
+
+    metrics.setup_metrics(stream=StringIO())
+
+    assert len(logger.handlers) == 2
+    assert isinstance(logger.handlers[0], logging.FileHandler)
+    assert isinstance(logger.handlers[1], logging.StreamHandler)
 
 
 def test_setup_metrics_custom():

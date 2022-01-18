@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from os import PathLike
 from pathlib import Path
@@ -16,35 +16,45 @@ logger = logging.getLogger("metrics")
 logger.propagate = False
 
 
+DEFAULT_FILENAME = "suppy"
+EXTENTION = ".txt"
+
+
+def get_default_filename() -> str:
+    """Return the default filename"""
+    return DEFAULT_FILENAME
+
+
 def setup_metrics(
-    filename: PathLike[str] | None = None,
+    filename: PathLike[str] | str | None = None,
     level: int = logging.INFO,
     stream: Optional[IO[str]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """Setup the metrics
 
     Arguments:
-        filename: if provided output the metrics to this file,
-            outputs to stdout by default
+        filename: if provided output the metrics to this file with the current timestamp appended.
+            will create a file in the current working directory by default
+            if filename points to an existing directory the output will be written there with the default filename
         level: log level to set for the metrics logger
             by default all metrics are logged on level INFO, setting this to a higher
             value will disable the metrics logs
-        stream: stream to use for the StreamHandler, stdout by default.
-        **kwargs: Additional arguments for the RotatingFileHandler
-            if filename is provided
+        stream: If set adds an additional StreamHandler writing metrics to the provided stream.
+        **kwargs: Additional arguments passed to the RotatingFileHandler
     """
-    kwargs["encoding"] = "utf-8" if "encoding" not in kwargs else kwargs["encoding"]
     # Remove any existing handlers
     if logger.hasHandlers():
         for hndlr in list(logger.handlers):
             logger.removeHandler(hndlr)
 
-    if filename is not None:
-        file = Path(filename)
-        handler: logging.Handler = RotatingFileHandler(file, **kwargs)
-    else:
-        handler = logging.StreamHandler(sys.stdout if stream is None else stream)
+    file = Path(filename if filename else get_default_filename())
+    if file.is_dir():
+        file = file / DEFAULT_FILENAME
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+    file = file.with_stem(f"{file.stem}_{timestamp}").with_suffix(EXTENTION)
+    file.parent.mkdir(parents=True, exist_ok=True)
+    handler: logging.Handler = RotatingFileHandler(file, encoding="utf-8", **kwargs)
 
     # Format the log as json for easy parsing
     # The formatter expects the LogRecord to be create with extras:
@@ -60,9 +70,14 @@ def setup_metrics(
         '"message": %(message)s'
         "}"
     )
-
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    if stream is not None:
+        streamhandler = logging.StreamHandler(stream)
+        streamhandler.setFormatter(formatter)
+        logger.addHandler(streamhandler)
+
     logger.setLevel(level)
 
 
