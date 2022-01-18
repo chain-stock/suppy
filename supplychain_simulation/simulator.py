@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Iterator, Optional
+from os import PathLike
+from pathlib import Path
+from typing import IO, Iterator, Optional
 
 from tqdm import tqdm  # type: ignore
 from typeguard import check_type
@@ -224,7 +226,9 @@ class Simulator:
             should adhere to the ControlStrategy Protocol
         release_strategy: Determines how orders are released from each Node during simulation
             should adhere to the ReleaseStrategy Protocol
-        output_file: File to write the metrics to, metrics will emit to stdout if not set
+        filename: File to write the metrics too
+            outputs results to the current workingdirectory by default
+        stream: Optional additional metrics stream to add.
 
     Raises:
         ValueError: if the strategies don't implement the correct Protocol
@@ -233,18 +237,30 @@ class Simulator:
     supply_chain: SupplyChain
     control_strategy: ControlStrategy
     release_strategy: ReleaseStrategy
+    filename: str | PathLike[str] | None = None
+    stream: Optional[IO[str]] = None
 
     def __post_init__(self) -> None:
         """Check if the provided strategies implement the correct interface"""
         check_type("control_strategy", self.control_strategy, ControlStrategy)
         check_type("release_strategy", self.release_strategy, ReleaseStrategy)
 
+    @property
+    def output(self) -> Iterator[PathLike[str]]:
+        """Return the filename(s) of the metrics FileHandler"""
+        # Eventually we should abstract the metrics handling and not rely on
+        # the logging module directly here
+        logger = logging.getLogger("metrics")
+        if logger.hasHandlers():
+            for hndlr in list(logger.handlers):
+                if isinstance(hndlr, logging.FileHandler):
+                    yield Path(hndlr.baseFilename)
+
     def run(
         self,
         start_or_end_period: int,
         /,
         end_period: Optional[int] = None,
-        **metrics_kwargs: Any,
     ) -> None:
         """Run the simulation for a number of periods
 
@@ -259,7 +275,7 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
-        setup_metrics(**metrics_kwargs)
+        setup_metrics(filename=self.filename, stream=self.stream)
         try:
             for period in tqdm(range(start_period, end_period + 1)):
                 self.simulate_period(period)

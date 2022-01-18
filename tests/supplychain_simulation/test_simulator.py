@@ -1,3 +1,5 @@
+from io import StringIO
+from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -24,6 +26,30 @@ def test_simulator_run(sim_period_mock, run_args):
             call(3),
         ]
     )
+
+
+def test_simulator_output():
+    """Test the Simulatort.output property"""
+    sc = SupplyChain(
+        nodes=[Node("A"), Node("B")],
+        edges=[Edge("B", "A", 1)],
+    )
+    sim = Simulator(sc, MagicMock(), MagicMock())
+
+    assert list(sim.output) == []
+
+    sim.run(1)
+
+    output = list(sim.output)
+    assert len(output) == 1
+    assert isinstance(output[0], Path)
+
+    sim.stream = StringIO()
+    sim.run(1)
+
+    output = list(sim.output)
+    assert len(output) == 1
+    assert isinstance(output[0], Path)
 
 
 def test_simulate_period():

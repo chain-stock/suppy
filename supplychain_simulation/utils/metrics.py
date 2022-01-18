@@ -36,12 +36,16 @@ def setup_metrics(
     Arguments:
         filename: if provided output the metrics to this file with the current timestamp appended.
             will create a file in the current working directory by default
-            if filename points to an existing directory the output will be written there with the default filename
+            if filename points to an existing directory
+            the output will be written there with the default filename
         level: log level to set for the metrics logger
             by default all metrics are logged on level INFO, setting this to a higher
             value will disable the metrics logs
         stream: If set adds an additional StreamHandler writing metrics to the provided stream.
         **kwargs: Additional arguments passed to the RotatingFileHandler
+
+    Returns:
+        Path to the logfile
     """
     # Remove any existing handlers
     if logger.hasHandlers():
@@ -50,7 +54,7 @@ def setup_metrics(
 
     file = Path(filename if filename else get_default_filename())
     if file.is_dir():
-        file = file / DEFAULT_FILENAME
+        file = file / get_default_filename()
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
     file = file.with_stem(f"{file.stem}_{timestamp}").with_suffix(EXTENTION)
     file.parent.mkdir(parents=True, exist_ok=True)
