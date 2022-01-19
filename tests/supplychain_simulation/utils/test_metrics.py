@@ -30,10 +30,10 @@ def test_setup_metrics_custom():
     """Test if we can use a custom stream for the metrics"""
     local_stream = StringIO()
 
-    metrics.setup_metrics(stream=local_stream)
+    m = metrics.setup_metrics(stream=local_stream)
     metrics.log_event(period=1, node=Node("A"), event="test", quantity=42)
     metrics.log_event(period=1, node=Node("A"), event="test", quantity=42)
-    metrics.stop_metrics()
+    m.stop_metrics()
 
     local_stream.seek(0)
     for line in local_stream:

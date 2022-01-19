@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from os import PathLike
-from pathlib import Path
 from typing import IO, Iterator, Optional
 
 from tqdm import tqdm  # type: ignore
@@ -13,7 +12,7 @@ from .edge import Edge
 from .node import Node, Orders
 from .pipeline import Receipt
 from .types import ControlStrategy, IdDict, ReleaseStrategy
-from .utils.metrics import log_event, setup_metrics, stop_metrics
+from .utils.metrics import MetricsExporter, log_event, setup_metrics
 
 
 class Inventory(IdDict[Node, int]):
@@ -244,17 +243,13 @@ class Simulator:
         """Check if the provided strategies implement the correct interface"""
         check_type("control_strategy", self.control_strategy, ControlStrategy)
         check_type("release_strategy", self.release_strategy, ReleaseStrategy)
+        self._metrics: MetricsExporter | None = None
 
     @property
     def output(self) -> Iterator[PathLike[str]]:
         """Return the filename(s) of the metrics FileHandler"""
-        # Eventually we should abstract the metrics handling and not rely on
-        # the logging module directly here
-        logger = logging.getLogger("metrics")
-        if logger.hasHandlers():
-            for hndlr in list(logger.handlers):
-                if isinstance(hndlr, logging.FileHandler):
-                    yield Path(hndlr.baseFilename)
+        if self._metrics:
+            yield from self._metrics.output
 
     def run(
         self,
@@ -275,14 +270,14 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
-        setup_metrics(filename=self.filename, stream=self.stream)
+        self._metrics = setup_metrics(filename=self.filename, stream=self.stream)
         try:
             for period in tqdm(range(start_period, end_period + 1)):
                 self.simulate_period(period)
                 for node in self.supply_chain.nodes.values():
                     log_node_state(node, period=period)
         finally:
-            stop_metrics()
+            self._metrics.stop_metrics()
 
     def simulate_period(self, period: int) -> None:
         """Simulate a single period"""
