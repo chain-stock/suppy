@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Iterator, Optional
+from os import PathLike
+from typing import IO, Iterator, Optional
 
+from tqdm import tqdm  # type: ignore
 from typeguard import check_type
 
 from .edge import Edge
 from .node import Node, Orders
 from .pipeline import Receipt
 from .types import ControlStrategy, IdDict, ReleaseStrategy
-from .utils.metrics import log_event, setup_metrics, stop_metrics
+from .utils.metrics import MetricsExporter, log_event, setup_metrics
 
 
 class Inventory(IdDict[Node, int]):
@@ -223,7 +225,9 @@ class Simulator:
             should adhere to the ControlStrategy Protocol
         release_strategy: Determines how orders are released from each Node during simulation
             should adhere to the ReleaseStrategy Protocol
-        output_file: File to write the metrics to, metrics will emit to stdout if not set
+        filename: File to write the metrics too
+            outputs results to the current workingdirectory by default
+        stream: Optional additional metrics stream to add.
 
     Raises:
         ValueError: if the strategies don't implement the correct Protocol
@@ -232,18 +236,26 @@ class Simulator:
     supply_chain: SupplyChain
     control_strategy: ControlStrategy
     release_strategy: ReleaseStrategy
+    filename: str | PathLike[str] | None = None
+    stream: Optional[IO[str]] = None
 
     def __post_init__(self) -> None:
         """Check if the provided strategies implement the correct interface"""
         check_type("control_strategy", self.control_strategy, ControlStrategy)
         check_type("release_strategy", self.release_strategy, ReleaseStrategy)
+        self._metrics: MetricsExporter | None = None
+
+    @property
+    def output(self) -> Iterator[PathLike[str]]:
+        """Return the filename(s) of the metrics FileHandler"""
+        if self._metrics:
+            yield from self._metrics.output
 
     def run(
         self,
         start_or_end_period: int,
         /,
         end_period: Optional[int] = None,
-        **metrics_kwargs: Any,
     ) -> None:
         """Run the simulation for a number of periods
 
@@ -258,14 +270,14 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
-        setup_metrics(**metrics_kwargs)
+        self._metrics = setup_metrics(filename=self.filename, stream=self.stream)
         try:
-            for period in range(start_period, end_period + 1):
+            for period in tqdm(range(start_period, end_period + 1)):
                 self.simulate_period(period)
                 for node in self.supply_chain.nodes.values():
                     log_node_state(node, period=period)
         finally:
-            stop_metrics()
+            self._metrics.stop_metrics()
 
     def simulate_period(self, period: int) -> None:
         """Simulate a single period"""
