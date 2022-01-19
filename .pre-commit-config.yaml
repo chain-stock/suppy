@@ -29,3 +29,12 @@ repos:
     -   id: mypy
         additional_dependencies: [pytest, typeguard]
         args: [--strict]
+
+-   repo: local
+    hooks:
+    -   id: jupyter-nb-clear-output
+        name: jupyter-nb-clear-output
+        files: \.ipynb$
+        stages: [commit]
+        language: system
+        entry: poetry run jupyter nbconvert --clear-output --ClearMetadataPreprocessor.enabled=True
