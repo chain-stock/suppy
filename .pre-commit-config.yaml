@@ -23,18 +23,20 @@ repos:
     -   id: isort
         args: ["--profile", "black"]
 
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v0.910'  # Use the sha / tag you want to point at
+-   repo: local
     hooks:
     -   id: mypy
-        additional_dependencies: [pytest, typeguard]
-        args: [--strict]
+        name: mypy
+        types_or: [python, pyi]
+        stages: [commit]
+        language: system
+        entry: poetry run mypy --strict
 
 -   repo: local
     hooks:
     -   id: jupyter-nb-clear-output
         name: jupyter-nb-clear-output
-        files: \.ipynb$
+        types_or: [jupyter]
         stages: [commit]
         language: system
         entry: poetry run jupyter nbconvert --clear-output --ClearMetadataPreprocessor.enabled=True

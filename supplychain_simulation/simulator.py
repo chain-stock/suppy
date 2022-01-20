@@ -228,7 +228,9 @@ class Simulator:
         filename: File to write the metrics too
             outputs results to the current workingdirectory by default
         stream: Optional additional metrics stream to add.
-
+        max_bytes: Maximum size of the output file
+            A new file will be opened when max_bytes will be exceeded.
+            default (0) will never create a new file
     Raises:
         ValueError: if the strategies don't implement the correct Protocol
     """
@@ -237,6 +239,7 @@ class Simulator:
     control_strategy: ControlStrategy
     release_strategy: ReleaseStrategy
     filename: str | PathLike[str] | None = None
+    max_bytes: int = 0
     stream: Optional[IO[str]] = None
 
     def __post_init__(self) -> None:
@@ -270,7 +273,9 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
-        self._metrics = setup_metrics(filename=self.filename, stream=self.stream)
+        self._metrics = setup_metrics(
+            filename=self.filename, stream=self.stream, max_bytes=self.max_bytes
+        )
         try:
             for period in tqdm(range(start_period, end_period + 1)):
                 self.simulate_period(period)
