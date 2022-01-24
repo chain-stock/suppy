@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from logging.handlers import RotatingFileHandler
 from os import PathLike
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Iterator, Optional
+
+from supplychain_simulation.utils.handlers import JsonRotatingFileHandler
 
 if TYPE_CHECKING:
     from supplychain_simulation import Node
@@ -17,7 +18,6 @@ logger.propagate = False
 
 
 DEFAULT_FILENAME = "suppy"
-EXTENTION = ".txt"
 
 
 def get_default_filename() -> str:
@@ -43,6 +43,7 @@ class MetricsExporter:
         filename: PathLike[str] | str | None = None,
         stream: IO[str] | None = None,
         level: int = logging.INFO,
+        max_bytes: int = 0,
     ):
         self.handlers = []
 
@@ -56,12 +57,12 @@ class MetricsExporter:
         if file.is_dir():
             file = file / get_default_filename()
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
-        file = file.with_stem(f"{file.stem}_{timestamp}").with_suffix(EXTENTION)
+        file = file.with_stem(f"{file.stem}_{timestamp}")
         file.parent.mkdir(parents=True, exist_ok=True)
-        handler = RotatingFileHandler(file, encoding="utf-8")
+        handler = JsonRotatingFileHandler(file, encoding="utf-8", max_bytes=max_bytes)
 
         # Format the log as json for easy parsing
-        # The formatter expects the LogRecord to be create with extras:
+        # The formatter expects the LogRecord to be created with extras:
         # node, event, quantity, period
         formatter = logging.Formatter(
             "{"
@@ -103,13 +104,13 @@ class MetricsExporter:
     def output(self) -> Iterator[PathLike[str]]:
         """Return the Path for every metrics output file"""
         for hndlr in self.filehandlers:
-            yield Path(hndlr.baseFilename)
+            yield from hndlr.files
 
     @property
-    def filehandlers(self) -> Iterator[logging.FileHandler]:
+    def filehandlers(self) -> Iterator[JsonRotatingFileHandler]:
         """Return any FileHandler instance for this exporter"""
         for hndlr in self.handlers:
-            if isinstance(hndlr, logging.FileHandler):
+            if isinstance(hndlr, JsonRotatingFileHandler):
                 yield hndlr
 
 
@@ -117,6 +118,7 @@ def setup_metrics(
     filename: PathLike[str] | str | None = None,
     level: int = logging.INFO,
     stream: Optional[IO[str]] = None,
+    max_bytes: int = 0,
 ) -> MetricsExporter:
     """Setup the metrics
 
@@ -134,10 +136,12 @@ def setup_metrics(
     Returns:
         Path to the logfile
     """
-    return MetricsExporter(filename=filename, stream=stream, level=level)
+    return MetricsExporter(
+        filename=filename, stream=stream, level=level, max_bytes=max_bytes
+    )
 
 
-def log_event(
+def log_event(  # pylint: disable=too-many-arguments
     period: int,
     node: Node,
     event: str,
