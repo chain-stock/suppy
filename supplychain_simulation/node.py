@@ -161,29 +161,45 @@ class Node:  # pylint: disable=too-many-instance-attributes
         order_lines = self.sales.pop_sales(period)
         sales = sum(order_lines)
 
+        if sales:
+            log_event(node=self, event="sales", quantity=sales, period=period)
+        if order_lines:
+            log_event(
+                node=self,
+                event="order-lines",
+                quantity=len(order_lines),
+                period=period,
+            )
+
         feasible: int = min(self.stock[self], sales)
         backorders = sales - feasible
         satisfied_order_lines = 0
         if feasible:
             self.stock[self] -= feasible
 
-            log_event(node=self, event="sales", quantity=feasible, period=period)
+            log_event(
+                node=self, event="sales-satisfied", quantity=feasible, period=period
+            )
             # find number of order-lines satisfied
             total = 0
-            for satisfied_order_lines, quantity in enumerate(order_lines):
+            satisfied_order_lines = 0
+            for quantity in order_lines:
                 total += quantity
                 if total > feasible:
                     break
+                satisfied_order_lines += 1
             if satisfied_order_lines:
                 log_event(
                     node=self,
-                    event="order-lines",
+                    event="order-lines-satisfied",
                     quantity=satisfied_order_lines,
                     period=period,
                 )
         if backorders:
             self.backorders += backorders
-            log_event(node=self, event="backorders", quantity=backorders, period=period)
+            log_event(
+                node=self, event="sales-backordered", quantity=backorders, period=period
+            )
             log_event(
                 node=self,
                 event="order-lines-backordered",

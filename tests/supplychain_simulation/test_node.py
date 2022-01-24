@@ -1,3 +1,5 @@
+from unittest.mock import call, patch
+
 import pytest
 
 from supplychain_simulation import Edge
@@ -122,6 +124,40 @@ def test_satisfy_sales_custom():
 
     with pytest.raises(ValueError, match="Out of Sales"):
         node.satisfy_sales(7)
+
+
+@patch("supplychain_simulation.node.log_event")
+def test_satisfy_sales_metrics_all_satisfied(log_event_mock):
+    """Test if the correct metrics are emitted"""
+    node = Node("A", sales=Sales({1: [2, 2]}), stock=Stock({"A": 4}))
+    node.satisfy_sales(1)
+
+    log_event_mock.assert_has_calls(
+        [
+            call(node=node, event="sales", quantity=4, period=1),
+            call(node=node, event="order-lines", quantity=2, period=1),
+            call(node=node, event="sales-satisfied", quantity=4, period=1),
+            call(node=node, event="order-lines-satisfied", quantity=2, period=1),
+        ],
+    )
+
+
+@patch("supplychain_simulation.node.log_event")
+def test_satisfy_sales_metrics_partial_satisfied(log_event_mock):
+    """Test if the correct metrics are emitted"""
+    node = Node("A", sales=Sales({1: [2, 2]}), stock=Stock({"A": 3}))
+    node.satisfy_sales(1)
+
+    log_event_mock.assert_has_calls(
+        [
+            call(node=node, event="sales", quantity=4, period=1),
+            call(node=node, event="order-lines", quantity=2, period=1),
+            call(node=node, event="sales-satisfied", quantity=3, period=1),
+            call(node=node, event="order-lines-satisfied", quantity=1, period=1),
+            call(node=node, event="sales-backordered", quantity=1, period=1),
+            call(node=node, event="order-lines-backordered", quantity=1, period=1),
+        ],
+    )
 
 
 def test_stock_default():
