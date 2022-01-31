@@ -37,7 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -U pip
-        pip install tox tox-gh
+        pip install tox-gh
 
     - name: Cache Tox
       uses: actions/cache@v2.1.7
