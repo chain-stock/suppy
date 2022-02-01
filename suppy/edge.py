@@ -24,4 +24,4 @@ class Edge:
     def __post_init__(self) -> None:
         """Ensure that number is > 0"""
         if self.number <= 0:
-            raise ValueError("Edge.number must more than 0")
+            raise ValueError("Edge.number must be more than 0")

@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
-from supplychain_simulation import Node
-from supplychain_simulation.strategy import RSQ
+from suppy import Node
+from suppy.strategy import RSQ
 
 
 def test_r_s_q_order():

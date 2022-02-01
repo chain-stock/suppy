@@ -50,7 +50,7 @@ jobs:
       run: python -m tox
 
     - name: Correct coverage report for SonarCloud scan
-      run: sed -i 's?/home/runner/work/chainstock-simulation/chainstock-simulation?\.?g' tests/results/coverage.xml
+      run: sed -i 's?/home/runner/work/suppy/suppy?\.?g' tests/results/coverage.xml
       if: matrix.sonar
 
     - name: Upload python test results

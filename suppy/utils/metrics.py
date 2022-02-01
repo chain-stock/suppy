@@ -7,10 +7,10 @@ from os import PathLike
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Iterator, Optional
 
-from supplychain_simulation.utils.handlers import JsonRotatingFileHandler
+from suppy.utils.handlers import JsonRotatingFileHandler
 
 if TYPE_CHECKING:
-    from supplychain_simulation import Node
+    from suppy import Node
 
 logger = logging.getLogger("metrics")
 # Ensure anything logged to this logger won't propagate to the root logger

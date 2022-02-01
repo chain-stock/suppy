@@ -1,6 +1,6 @@
 import pytest
 
-from supplychain_simulation import pipeline
+from suppy import pipeline
 
 
 def test_pipeline_invalid():

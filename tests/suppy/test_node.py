@@ -2,10 +2,10 @@ from unittest.mock import call, patch
 
 import pytest
 
-from supplychain_simulation import Edge
-from supplychain_simulation.leadtime import LeadTime
-from supplychain_simulation.node import Node, Orders, Sales, Stock
-from supplychain_simulation.pipeline import Pipeline, Receipt
+from suppy import Edge
+from suppy.leadtime import LeadTime
+from suppy.node import Node, Orders, Sales, Stock
+from suppy.pipeline import Pipeline, Receipt
 
 
 def test_assemblies_feasible():
@@ -126,7 +126,7 @@ def test_satisfy_sales_custom():
         node.satisfy_sales(7)
 
 
-@patch("supplychain_simulation.node.log_event")
+@patch("suppy.node.log_event")
 def test_satisfy_sales_metrics_all_satisfied(log_event_mock):
     """Test if the correct metrics are emitted"""
     node = Node("A", sales=Sales({1: [2, 2]}), stock=Stock({"A": 4}))
@@ -142,7 +142,7 @@ def test_satisfy_sales_metrics_all_satisfied(log_event_mock):
     )
 
 
-@patch("supplychain_simulation.node.log_event")
+@patch("suppy.node.log_event")
 def test_satisfy_sales_metrics_partial_satisfied(log_event_mock):
     """Test if the correct metrics are emitted"""
     node = Node("A", sales=Sales({1: [2, 2]}), stock=Stock({"A": 3}))

@@ -1,6 +1,6 @@
 import pytest
 
-from supplychain_simulation import edge
+from suppy import edge
 
 
 def test_edge_negative():

@@ -13,7 +13,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from supplychain_simulation.node import Node, Orders
+    from suppy.node import Node, Orders
 
 
 # pylint: disable=too-few-public-methods

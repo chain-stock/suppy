@@ -2,8 +2,8 @@ import json
 import logging
 from io import StringIO
 
-from supplychain_simulation import Node
-from supplychain_simulation.utils import metrics
+from suppy import Node
+from suppy.utils import metrics
 
 
 def test_setup_metrics(tmp_path):

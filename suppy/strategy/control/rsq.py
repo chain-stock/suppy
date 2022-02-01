@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from math import ceil
 from typing import TypedDict
 
-from supplychain_simulation.node import Node, Orders
-from supplychain_simulation.simulator import SupplyChain
+from suppy.node import Node, Orders
+from suppy.simulator import SupplyChain
 
 
 class RsqData(TypedDict):

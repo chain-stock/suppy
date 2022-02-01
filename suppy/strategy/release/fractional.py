@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from math import ceil
 
-from supplychain_simulation.node import Node, Orders
+from suppy.node import Node, Orders
 
 
 class Fractional:  # pylint: disable=too-few-public-methods

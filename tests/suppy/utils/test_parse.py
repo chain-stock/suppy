@@ -1,9 +1,9 @@
 import pytest
 
-from supplychain_simulation import Edge, LeadTime, SupplyChain
-from supplychain_simulation.node import Orders, Sales, Stock
-from supplychain_simulation.pipeline import Pipeline, Receipt
-from supplychain_simulation.utils import parse
+from suppy import Edge, LeadTime, SupplyChain
+from suppy.node import Orders, Sales, Stock
+from suppy.pipeline import Pipeline, Receipt
+from suppy.utils import parse
 
 
 def test_supplychain_from_json(tmp_path):
