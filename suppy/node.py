@@ -91,7 +91,8 @@ class Node:  # pylint: disable=too-many-instance-attributes
     def __hash__(self) -> int:
         """Hash by the Node ID
 
-        Allow using a Node as a key in a dict
+        This, in combination with the dataclass generated __eq__,
+        allows using a Node as a key in a dict
         Be aware that this hash does not uniquely identify this instance
         and should not be relied upon to ensure uniqueness
         """

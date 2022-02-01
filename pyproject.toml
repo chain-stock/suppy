@@ -1,16 +1,16 @@
 [tool.poetry]
-name = "supplychain-simulation"
+name = "suppy"
 version = "0.1.0"
 
 description = ""
-authors = ["Luuk Gijben <l.gijben@chain-stock.com>","Allex Veldman <a.veldman@chain-stock.com>"]
+authors = ["Allex Veldman <a.veldman@chain-stock.com>", "Luuk Gijben <l.gijben@chain-stock.com>"]
 license = "GPL-3.0-only"
 
 readme = "README.md"
 
-homepage = "https://github.com/chain-stock/chainstock-simulation"
-repository = "https://github.com/chain-stock/chainstock-simulation"
-documentation = "https://github.com/chain-stock/chainstock-simulation"
+homepage = "https://github.com/chain-stock/suppy"
+repository = "https://github.com/chain-stock/suppy"
+documentation = "https://github.com/chain-stock/suppy"
 
 keywords = []
 classifiers = [

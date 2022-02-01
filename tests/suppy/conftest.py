@@ -7,7 +7,7 @@ import pytest
 def metrics_tmp_dir(tmp_path):
     """Write metrics to tmpdir instead of cwd during unittests"""
     with patch(
-        "supplychain_simulation.utils.metrics.get_default_filename",
+        "suppy.utils.metrics.get_default_filename",
         new=lambda: tmp_path,
     ):
         yield

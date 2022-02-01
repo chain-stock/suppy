@@ -1,6 +1,6 @@
 import pytest
 
-from supplychain_simulation import leadtime
+from suppy import leadtime
 
 
 def test_leadtime_no_default():

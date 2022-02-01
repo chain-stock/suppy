@@ -1,6 +1,6 @@
-from supplychain_simulation import Node
-from supplychain_simulation.node import Orders, Stock
-from supplychain_simulation.strategy import Fractional
+from suppy import Node
+from suppy.node import Orders, Stock
+from suppy.strategy import Fractional
 
 
 def test_fractional_feasible():
