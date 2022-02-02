@@ -57,7 +57,7 @@ class SupplyChain:
         """Initialize the Node"""
         self._check_edges()
         self._check_nodes()
-        self.set_llc()
+        self._set_llc()
 
     def _check_edges(self) -> None:
         """Check if all provided edges are valid and add them to the `Node.predecessors`"""
@@ -101,7 +101,7 @@ class SupplyChain:
         """
         return edge in self.edges
 
-    def set_llc(self) -> None:
+    def _set_llc(self) -> None:
         """Set the low-level-code for each node"""
         for node in self.nodes.values():
             if node.supplier:
@@ -162,7 +162,7 @@ class SupplyChain:
         inventory = self.inventory(node)
         return node.assemblies_feasible(inventory) + inventory[node]
 
-    def create_orders(self, node: Node, orders: Orders, period: int) -> None:
+    def _create_orders(self, node: Node, orders: Orders, period: int) -> None:
         """Create orders for all the parts needed to assemble the node
 
         orders can contain orders for both the node itself and for other nodes
@@ -193,7 +193,7 @@ class SupplyChain:
                 order_node = self.nodes[order_node_id]
                 order_node.orders[node] += quantity
 
-    def release_orders(self, node: Node, releases: Orders, period: int) -> None:
+    def _release_orders(self, node: Node, releases: Orders, period: int) -> None:
         """Add the releases to the pipeline of the appropriate node"""
         for release_node_id, quantity in releases.items():
             quantity = min(quantity, node.stock[node])
@@ -312,11 +312,13 @@ class Simulator:
                 # determine order size
                 orders = self.control_strategy.get_orders(node=node, period=period)
                 # create new orders
-                self.supply_chain.create_orders(node, orders=orders, period=period)
+                self.supply_chain._create_orders(  # pylint: disable=protected-access
+                    node, orders=orders, period=period
+                )
                 # create order release
                 order_releases = self.release_strategy.get_releases(node)
                 # release orders
-                self.supply_chain.release_orders(
+                self.supply_chain._release_orders(  # pylint: disable=protected-access
                     node=node, releases=order_releases, period=period
                 )
 
