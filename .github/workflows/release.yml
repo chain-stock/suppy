@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Build and Publish Suppy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release-please
+        with:
+          release-type: python
+          package-name: suppy
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+
+      - uses: actions/checkout@v2.4.0
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2.3.1
+        with:
+          python-version: 3.9
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Bump package version
+        run: poetry version ${{ steps.release-please.outputs.tag_name }}
+
+      - name: Build
+        run: poetry build
+
+      - name: Publish
+        if: ${{ steps.release-please.outputs.release_created }}
+        with:
+          POETRY_REPOSITORIES_TESTPYPI: "https://test.pypi.org/legacy/"
+          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: poetry publish --repository testpypi
