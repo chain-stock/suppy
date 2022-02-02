@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.1.2](https://github.com/chain-stock/suppy/compare/v0.1.1...v0.1.2) (2022-02-02)
+
+
+### Bug Fixes
+
+* **workflow:** Switch test PyPi to PyPi ([f4aa311](https://github.com/chain-stock/suppy/commit/f4aa311f412c34d193c5bfe5353a1358e3f5cb30))
+
 ### [0.1.1](https://github.com/chain-stock/suppy/compare/v0.1.0...v0.1.1) (2022-02-02)
 
 
