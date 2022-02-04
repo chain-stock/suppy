@@ -137,6 +137,15 @@ def test_simulator_invalid_strategies():
         Simulator(sc, control_strategy=RSQ(sc), release_strategy=int)  # type: ignore
 
 
+def test_simulator_validate_llc():
+    """Test if an error is raised if any node does not have a valid llc set"""
+    sc = SupplyChain(nodes=[Node("A")])
+    sc.nodes["B"] = Node("B")
+    sim = Simulator(sc, MagicMock(), MagicMock())
+    with pytest.raises(ValueError, match=r"Node\(B\) has an invalid llc: -1"):
+        sim.run(1)
+
+
 def test_supply_chain_node_exists():
     sc = SupplyChain(nodes=[Node("A"), Node("B")])
 

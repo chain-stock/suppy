@@ -271,6 +271,11 @@ class Simulator:
         else:
             start_period = start_or_end_period
 
+        # Check if all nodes have their llc set
+        for node in self.supply_chain.nodes.values():
+            if not isinstance(node.llc, int) or node.llc < 0:
+                raise ValueError(f"{node} has an invalid llc: {node.llc}")
+
         self._metrics = setup_metrics(
             filename=self.filename, stream=self.stream, max_bytes=self.max_bytes
         )
