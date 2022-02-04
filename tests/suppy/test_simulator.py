@@ -3,6 +3,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from suppy import Edge, Simulator, SupplyChain
 from suppy.leadtime import LeadTime
@@ -366,29 +368,54 @@ def test_supply_chain_create_orders_none():
     assert sc.nodes["A"].pipeline == []
 
 
-def test_supply_chain_set_llc():
-    sc = SupplyChain(
-        nodes=[
+@given(
+    nodes=st.permutations(
+        [
             Node("A"),
             Node("B"),
             Node("C"),
             Node("D"),
             Node("E"),
             Node("F"),
-        ],
-        edges=[
+            Node("G"),
+        ]
+    ),
+    edges=st.permutations(
+        [
+            Edge(source="F", destination="A", number=1),
             Edge(source="B", destination="A", number=1),
             Edge(source="C", destination="B", number=1),
             Edge(source="D", destination="B", number=1),
             Edge(source="E", destination="C", number=1),
-            Edge(source="F", destination="A", number=1),
             Edge(source="F", destination="E", number=1),
-        ],
+        ]
+    ),
+)
+def test_supply_chain_set_llc(nodes, edges):
+    """Test if the correct llc is set, regardless of node/edge order"""
+    sc = SupplyChain(
+        nodes=nodes,
+        edges=edges,
     )
 
     assert sc.nodes["A"].llc == 0
+    assert sc.nodes["G"].llc == 0
     assert sc.nodes["B"].llc == 1
     assert sc.nodes["C"].llc == 2
     assert sc.nodes["D"].llc == 2
     assert sc.nodes["E"].llc == 3
     assert sc.nodes["F"].llc == 4
+
+
+def test_supply_chain_set_llc_single_echelon():
+    """Ensure the llc is correctly set for single-echelon supply chains"""
+    sc = SupplyChain(
+        nodes=[
+            Node("A"),
+            Node("B"),
+        ],
+        edges=[],
+    )
+
+    assert sc.nodes["A"].llc == 0
+    assert sc.nodes["B"].llc == 0

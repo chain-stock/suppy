@@ -36,7 +36,7 @@ class SupplyChain:
             Will be used to set the `Node.predecessors`
 
     Raises:
-        ValueError: if an Edge is defined while it's source or destination Node does not exist
+        ValueError: if an Edge is defined while its source or destination Node does not exist
 
     """
 
@@ -104,8 +104,6 @@ class SupplyChain:
     def _set_llc(self) -> None:
         """Set the low-level-code for each node"""
         for node in self.nodes.values():
-            if node.supplier:
-                continue
 
             echelon_nr = 0
             echelon: list[str] = [node.id]
