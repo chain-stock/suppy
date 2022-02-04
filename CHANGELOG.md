@@ -1,5 +1,13 @@
 # Changelog
 
+### [0.1.3](https://github.com/chain-stock/suppy/compare/v0.1.2...v0.1.3) (2022-02-04)
+
+
+### Bug Fixes
+
+* **node:** Ensure single-echelon nodes get their `llc` set ([#55](https://github.com/chain-stock/suppy/issues/55)) ([fbe2e46](https://github.com/chain-stock/suppy/commit/fbe2e466745f607faceabd81df5edf4970b57e30))
+* **simulator:** Ensure all nodes in a SupplyChain have a valid llc set ([#56](https://github.com/chain-stock/suppy/issues/56)) ([c92fb38](https://github.com/chain-stock/suppy/commit/c92fb38bd27344f68c149dc89b14cb6f7cce0c9a))
+
 ### [0.1.2](https://github.com/chain-stock/suppy/compare/v0.1.1...v0.1.2) (2022-02-02)
 
 
