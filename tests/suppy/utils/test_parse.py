@@ -84,8 +84,8 @@ def test_supplychain_from_json(tmp_path):
 
     assert isinstance(node_a.lead_time, LeadTime)
     assert isinstance(node_b.lead_time, LeadTime)
-    assert node_a.lead_time == {1: 1, 2: 2, 3: 3, 4: 4}
-    assert node_b.lead_time == {1: 5, 2: 6}
+    assert node_a.lead_time == LeadTime({1: 1, 2: 2, 3: 3, 4: 4})
+    assert node_b.lead_time == LeadTime({1: 5, 2: 6}, default=42)
 
     assert node_a.backorders == 5
     assert node_b.backorders == 0
@@ -127,8 +127,8 @@ def test_supplychain_from_json(tmp_path):
 
     assert isinstance(node_a.lead_time, LeadTime)
     assert isinstance(node_b.lead_time, LeadTime)
-    assert node_a.lead_time == {1: 1, 2: 2, 3: 3, 4: 4}
-    assert node_b.lead_time == {1: 5, 2: 6}
+    assert node_a.lead_time == LeadTime({1: 1, 2: 2, 3: 3, 4: 4})
+    assert node_b.lead_time == LeadTime({1: 5, 2: 6}, default=42)
     with pytest.raises(ValueError):
         node_a.lead_time.get_lead_time(5)
     assert node_b.lead_time.get_lead_time(5) == 42
@@ -177,7 +177,7 @@ def test_supplychain_from_json_minimal(tmp_path):
     assert isinstance(node_a.sales, Sales)
     assert node_a.sales == {}
     assert isinstance(node_a.lead_time, LeadTime)
-    assert node_a.lead_time == {}
+    assert node_a.lead_time == LeadTime(default=42)
     assert node_a.backorders == 0
     assert isinstance(node_a.pipeline, Pipeline)
     assert node_a.pipeline == []
@@ -206,7 +206,7 @@ def test_supplychain_from_json_lead_time_default(tmp_path):
 
     node_a = result.nodes["A"]
 
-    assert node_a.lead_time == {}
+    assert node_a.lead_time == LeadTime(default=6)
     assert node_a.lead_time.get_lead_time(66) == 6
 
 
