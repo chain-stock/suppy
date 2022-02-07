@@ -1,9 +1,10 @@
+import json
+
 import pytest
 
 from suppy import Edge, LeadTime, SupplyChain
-from suppy.node import Orders, Sales, Stock
+from suppy.node import Node, Orders, Sales, Stock
 from suppy.pipeline import Pipeline, Receipt
-from suppy.utils import parse
 
 
 def test_supplychain_from_json(tmp_path):
@@ -64,7 +65,7 @@ def test_supplychain_from_json(tmp_path):
     }
     """
 
-    result = parse.supplychain_from_jsons(json_data)
+    result = SupplyChain.from_json(json_data)
 
     assert isinstance(result, SupplyChain)
     assert result.node_exists("A")
@@ -84,7 +85,7 @@ def test_supplychain_from_json(tmp_path):
 
     assert isinstance(node_a.lead_time, LeadTime)
     assert isinstance(node_b.lead_time, LeadTime)
-    assert node_a.lead_time == LeadTime({1: 1, 2: 2, 3: 3, 4: 4})
+    assert node_a.lead_time == LeadTime([1, 2, 3, 4])
     assert node_b.lead_time == LeadTime({1: 5, 2: 6}, default=42)
 
     assert node_a.backorders == 5
@@ -107,7 +108,7 @@ def test_supplychain_from_json(tmp_path):
 
     file = tmp_path / "tmp.json"
     file.write_text(json_data)
-    result = parse.supplychain_from_json(file)
+    result = SupplyChain.from_json(file)
 
     assert isinstance(result, SupplyChain)
     assert result.node_exists("A")
@@ -127,10 +128,9 @@ def test_supplychain_from_json(tmp_path):
 
     assert isinstance(node_a.lead_time, LeadTime)
     assert isinstance(node_b.lead_time, LeadTime)
-    assert node_a.lead_time == LeadTime({1: 1, 2: 2, 3: 3, 4: 4})
+    assert node_a.lead_time == LeadTime([1, 2, 3, 4])
     assert node_b.lead_time == LeadTime({1: 5, 2: 6}, default=42)
-    with pytest.raises(ValueError):
-        node_a.lead_time.get_lead_time(5)
+    assert node_a.lead_time.get_lead_time(5) == 1
     assert node_b.lead_time.get_lead_time(5) == 42
 
     assert node_a.backorders == 5
@@ -158,16 +158,13 @@ def test_supplychain_from_json_minimal(tmp_path):
     {
         "nodes": [
             {
-                "id": "A",
-                "lead_time": {
-                    "default": 42
-                }
+                "id": "A"
             }
         ]
     }
     """
 
-    result = parse.supplychain_from_jsons(json_data)
+    result = SupplyChain.from_json(json_data)
 
     assert result.node_exists("A")
 
@@ -177,7 +174,7 @@ def test_supplychain_from_json_minimal(tmp_path):
     assert isinstance(node_a.sales, Sales)
     assert node_a.sales == {}
     assert isinstance(node_a.lead_time, LeadTime)
-    assert node_a.lead_time == LeadTime(default=42)
+    assert node_a.lead_time == LeadTime()
     assert node_a.backorders == 0
     assert isinstance(node_a.pipeline, Pipeline)
     assert node_a.pipeline == []
@@ -200,7 +197,7 @@ def test_supplychain_from_json_lead_time_default(tmp_path):
     }
     """
 
-    result = parse.supplychain_from_jsons(json_data)
+    result = SupplyChain.from_json(json_data)
 
     assert result.node_exists("A")
 
@@ -234,4 +231,72 @@ def test_supplychain_from_json_lead_time_default(tmp_path):
 def test_parse_invalid_type(json_data):
     """Test if an error is raised when the data type is invalid"""
     with pytest.raises(TypeError):
-        parse.supplychain_from_jsons(json_data)
+        SupplyChain.from_json(json_data)
+
+
+def test_supplychain_to_json(tmp_path):
+    """Test if we can serialise a SuppyChain"""
+    sc = SupplyChain(
+        nodes=[
+            Node(
+                "A",
+                sales=Sales({1: [2]}),
+                lead_time=LeadTime(default=14),
+                orders=Orders({"B": 12}),
+                stock=Stock({"A": 100, "B": 3}),
+            ),
+            Node(
+                "B",
+                lead_time=LeadTime({1: 13}, default=4),
+                pipeline=Pipeline([Receipt(eta=3, sku_code="A", quantity=3)]),
+            ),
+            Node("C", lead_time=LeadTime([1, 2]), orders=Orders({Node("B"): 12})),
+        ],
+        edges=[Edge("A", "B", 2)],
+    )
+    _file = tmp_path / "unittest.json"
+    sc.to_json(_file)
+    data = json.loads(_file.read_text(encoding="utf8"))
+    assert data == {
+        "nodes": [
+            {
+                "id": "A",
+                "llc": 1,
+                "backorders": 0,
+                "data": {},
+                "sales": {"1": [2]},
+                "lead_time": {"default": 14},
+                "orders": {"B": 12},
+                "pipeline": [],
+                "predecessors": [],
+                "stock": {"A": 100, "B": 3},
+            },
+            {
+                "id": "B",
+                "llc": 0,
+                "backorders": 0,
+                "data": {},
+                "sales": {},
+                "lead_time": {"queue": {"1": 13}, "default": 4},
+                "orders": {},
+                "pipeline": [{"eta": 3, "sku_code": "A", "quantity": 3}],
+                "predecessors": [{"destination": "B", "number": 2, "source": "A"}],
+                "stock": {},
+            },
+            {
+                "id": "C",
+                "llc": 0,
+                "backorders": 0,
+                "data": {},
+                "sales": {},
+                "lead_time": {"queue": [1, 2]},
+                "orders": {"B": 12},
+                "pipeline": [],
+                "predecessors": [],
+                "stock": {},
+            },
+        ],
+        "edges": [{"source": "A", "destination": "B", "number": 2}],
+    }
+
+    assert json.loads(SupplyChain.from_json(sc.to_json()).to_json()) == data

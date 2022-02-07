@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from os import PathLike
-from typing import IO, Iterator, Optional
+from pathlib import Path
+from typing import IO, Iterator, Optional, overload
 
 from tqdm import tqdm  # type: ignore
 from typeguard import check_type
@@ -13,6 +15,7 @@ from .node import Node, Orders
 from .pipeline import Receipt
 from .types import ControlStrategy, IdDict, ReleaseStrategy
 from .utils.metrics import MetricsExporter, log_event, setup_metrics
+from .utils.parse import SupplyChainJSONEncoder, supplychain_from_dict
 
 
 class Inventory(IdDict[Node, int]):
@@ -100,6 +103,48 @@ class SupplyChain:
         no further equality check is done
         """
         return edge in self.edges
+
+    @overload
+    def to_json(self) -> str:
+        ...
+
+    @overload
+    def to_json(self, filename: PathLike[str]) -> None:
+        ...
+
+    def to_json(self, filename: PathLike[str] | None = None) -> str | None:
+        """Serialize the SupplyChain to JSON
+
+        Arguments:
+            filename: Optional path-like object to write the JSON to
+            If the file already exists it will be replaced
+
+        Returns:
+            JSON encoded string or None
+        """
+        if filename is None:
+            return json.dumps(self, cls=SupplyChainJSONEncoder)
+        filepath = Path(filename)
+        filepath.parent.mkdir(exist_ok=True, parents=True)
+        with filepath.open(encoding="utf8", mode="w") as _file:
+            json.dump(self, _file, cls=SupplyChainJSONEncoder)
+        return None
+
+    @classmethod
+    def from_json(cls, data: PathLike[str] | str) -> SupplyChain:
+        """Build a SupplyChain from JSON
+
+        Arguments:
+            data: A path-like object to read the JSON from
+                or a JSON encoded string
+
+        Returns:
+            A SuppyChain instance initialized from JSON
+        """
+        if isinstance(data, str):
+            return cls(**supplychain_from_dict(json.loads(data)))
+        with Path(data).open(encoding="utf8") as _file:
+            return cls(**supplychain_from_dict(json.load(_file)))
 
     def _set_llc(self) -> None:
         """Set the low-level-code for each node"""

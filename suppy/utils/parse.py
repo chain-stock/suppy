@@ -1,6 +1,6 @@
-import json
-from os import PathLike
-from pathlib import Path
+from collections import UserDict, UserList
+from dataclasses import asdict, is_dataclass
+from json import JSONEncoder
 from typing import Any, Optional, TypedDict, TypeVar, Union
 
 from typeguard import check_type
@@ -9,7 +9,6 @@ from ..edge import Edge
 from ..leadtime import LeadTime
 from ..node import Node, Orders, Sales, Stock
 from ..pipeline import Pipeline, Receipt
-from ..simulator import SupplyChain
 
 SalesJson = Union[list[list[int]], dict[str, list[int]]]
 LeadTimeQueueJson = Union[list[int], dict[str, int]]
@@ -36,6 +35,14 @@ class NodeDictId(TypedDict):
     id: str
 
 
+class EdgeDict(TypedDict):
+    """Dict representation of an Edge"""
+
+    source: str
+    destination: str
+    number: int
+
+
 class NodeDict(NodeDictId, total=False):
     """Dict representation of a Node"""
 
@@ -46,14 +53,8 @@ class NodeDict(NodeDictId, total=False):
     pipeline: Optional[list[ReceiptDict]]
     stock: dict[str, int]
     orders: dict[str, int]
-
-
-class EdgeDict(TypedDict):
-    """Dict representation of an Edge"""
-
-    source: str
-    destination: str
-    number: int
+    llc: Optional[int]
+    predecessors: Optional[list[EdgeDict]]
 
 
 class JsonSupplyChain(TypedDict, total=False):
@@ -63,15 +64,8 @@ class JsonSupplyChain(TypedDict, total=False):
     edges: list[EdgeDict]
 
 
-def supplychain_from_json(file: PathLike[str]) -> SupplyChain:
-    """Convert a JSON file to a SupplyChain instance"""
-    return supplychain_from_jsons(Path(file).read_text(encoding="utf-8"))
-
-
-def supplychain_from_jsons(json_data: Union[str, bytes]) -> SupplyChain:
-    """Convert JSON string to a SupplyChain instance"""
-
-    data: JsonSupplyChain = json.loads(json_data)
+def supplychain_from_dict(data: JsonSupplyChain) -> dict[str, Any]:
+    """Convert a dict to a dict of SupplyChain parameters"""
     # Type-check the data
     check_type("json", data, JsonSupplyChain)
     json_nodes = data.get("nodes", [])
@@ -80,28 +74,28 @@ def supplychain_from_jsons(json_data: Union[str, bytes]) -> SupplyChain:
     nodes: list[Node] = []
 
     for _node in json_nodes:
-        params: dict[str, Any] = {
-            "id": _node["id"],
-            "data": _node.get("data", {}),
-            "backorders": _node.get("backorders", 0),
-        }
-        if sales := parse_sales(_node.get("sales")):
+        params: dict[str, Any] = {}
+        if sales := parse_sales(_node.pop("sales", None)):
             params["sales"] = sales
-        if lead_time := parse_leadtime(_node.get("lead_time")):
+        if lead_time := parse_leadtime(_node.pop("lead_time", None)):
             params["lead_time"] = lead_time
-        if pipeline := parse_pipeline(_node.get("pipeline")):
+        if pipeline := parse_pipeline(_node.pop("pipeline", None)):
             params["pipeline"] = pipeline
-        if stock := parse_stock(_node.get("stock")):
+        if stock := parse_stock(_node.pop("stock", None)):
             params["stock"] = stock
-        if orders := parse_orders(_node.get("orders")):
+        if orders := parse_orders(_node.pop("orders", None)):
             params["orders"] = orders
+        if predecessors := _node.pop("predecessors", None):
+            params["predecessors"] = [Edge(**edge) for edge in predecessors]
+        for key, value in _node.items():
+            params[key] = value
 
         node = Node(**params)
         nodes.append(node)
 
     edges = [Edge(**edge) for edge in json_edges]
 
-    return SupplyChain(nodes=nodes, edges=edges)
+    return dict(nodes=nodes, edges=edges)
 
 
 def parse_sales(sales: Optional[SalesJson], /) -> Optional[Sales]:
@@ -125,10 +119,7 @@ def parse_leadtime(lead_time: Union[LeadTimeDict, int, None], /) -> Optional[Lea
         return None
     if isinstance(lead_time, int):
         return LeadTime(default=lead_time)
-
-    default = lead_time.get("default")
-    queue = lead_time.get("queue")
-    return LeadTime(parse_list_or_dict(queue), default=default)
+    return LeadTime(**lead_time)
 
 
 def parse_pipeline(pipeline: Optional[list[ReceiptDict]]) -> Optional[Pipeline]:
@@ -172,3 +163,42 @@ def parse_list_or_dict(_thing: ListOrDictType, /) -> Optional[dict[int, Any]]:
     if isinstance(_thing, dict):
         return {int(key): value for key, value in _thing.items()}
     return None
+
+
+def dict_factory(mapping: list[tuple[str, Any]]) -> dict[str, Any]:
+    """dict_factory for dataclasses.asdict
+
+    Removes any attribute that starts with "_" from the generated dict
+    """
+    mapping = [
+        (key, value)
+        for key, value in mapping
+        if not key.startswith("_") and not value is None
+    ]
+    return dict(mapping)
+
+
+class SupplyChainJSONEncoder(JSONEncoder):
+    """JSON Encoder for SupplyChain instances
+
+    Example:
+        ```
+        json.dumps(SupplyChain(), cls=SupplyChainJSONEncoder)
+        ```
+    """
+
+    def default(self, o: Any) -> Any:
+        """Return a JSON serializable representation of obj
+
+        Adds the ability to serialize dataclasses, SupplyChain and UserDict/List
+        """
+        if hasattr(o, "nodes") and hasattr(o, "edges"):
+            return {
+                "edges": list(o.edges.values()),
+                "nodes": list(o.nodes.values()),
+            }
+        if is_dataclass(o):
+            return asdict(o, dict_factory=dict_factory)
+        if isinstance(o, (UserDict, UserList)):
+            return o.data
+        return super().default(o)

@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 from typeguard import check_type
 
-QueueType = Union[list[int], dict[int, int]]
+QueueType = Union[list[int], dict[int, int], dict[str, int]]
 
 
 @dataclass
@@ -23,6 +23,9 @@ class LeadTime:
     _queue_idx: int = field(default=0, init=False, repr=False)
 
     def __post_init__(self) -> None:
+        if isinstance(self.queue, dict):
+            # Ensure all keys are integers
+            self.queue = {int(key): value for key, value in self.queue.items()}
         check_type("queue", self.queue, Optional[QueueType])
         check_type("default", self.default, Optional[int])
 
@@ -37,7 +40,7 @@ class LeadTime:
         """
         if isinstance(self.queue, dict) and period in self.queue:
             # queue is a dict of lead-time per period
-            return self.queue[period]
+            return self.queue[period]  # type: ignore
         if isinstance(self.queue, list) and self._queue_idx < len(self.queue):
             # queue is a list of lead-times to consume in-order
             # regardless of period
