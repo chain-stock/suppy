@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "suppy"
-version = "0.1.3"
+version = "0.1.4"
 
 description = ""
 authors = ["Allex Veldman <a.veldman@chain-stock.com>", "Luuk Gijben <l.gijben@chain-stock.com>"]
