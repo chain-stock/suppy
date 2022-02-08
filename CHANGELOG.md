@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.1.4](https://github.com/chain-stock/suppy/compare/v0.1.3...v0.1.4) (2022-02-08)
+
+
+### Features
+
+* **supplychain:** Add `Supplychain.from_json()` and `SupplyChain().to_json()` ([#62](https://github.com/chain-stock/suppy/issues/62)) ([ca6bfdf](https://github.com/chain-stock/suppy/commit/ca6bfdffe74c8127a896cf63f6ead8ce0b535213))
+
 ### [0.1.3](https://github.com/chain-stock/suppy/compare/v0.1.2...v0.1.3) (2022-02-04)
 
 
