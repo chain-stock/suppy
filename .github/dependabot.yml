@@ -4,8 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "chore(dependencies)"
 
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "fix(dependencies)"
+      prefix-development: "chore(dev-dependencies)"
