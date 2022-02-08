@@ -29,7 +29,7 @@ def test_leadtime_list():
     lt = leadtime.LeadTime([4, 2, 3, 1])
     assert lt.get_lead_time(1) == 4
     assert lt.get_lead_time(1) == 2
-    assert lt.get_lead_time(1) == 3
+    assert lt.get_lead_time(1000) == 3
     assert lt.get_lead_time(1) == 1
 
 
