@@ -20,7 +20,7 @@ jobs:
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
 
-      - uses: actions/checkout@v2.4.0
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v3

@@ -27,7 +27,7 @@ jobs:
             sonar: true
 
     steps:
-    - uses: actions/checkout@v2.4.0
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.py }}
       uses: actions/setup-python@v3
@@ -83,7 +83,7 @@ jobs:
     if: always()
 
     steps:
-    - uses: actions/checkout@v2.3.5
+    - uses: actions/checkout@v3
     - run: |
         git fetch --prune --unshallow
 
