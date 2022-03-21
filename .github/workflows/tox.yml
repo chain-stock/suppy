@@ -41,7 +41,7 @@ jobs:
         pip install tox-gh
 
     - name: Cache Tox
-      uses: actions/cache@v2.1.7
+      uses: actions/cache@v3
       with:
         path: .tox
         key: ${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
