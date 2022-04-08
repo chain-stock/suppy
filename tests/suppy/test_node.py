@@ -4,7 +4,7 @@ import pytest
 
 from suppy import Edge
 from suppy.leadtime import LeadTime
-from suppy.node import Node, Orders, Sales, Stock
+from suppy.node import Node, Sales, Stock
 from suppy.pipeline import Pipeline, Receipt
 
 
@@ -68,7 +68,7 @@ def test_satisfy_sales_feasible():
         stock=Stock({"A": 100, "B": 20}),
         sales=Sales({1: [5, 5]}),
     )
-    node.satisfy_sales(1)
+    node.satisfy_sales(1, loop=0)
     assert node.backorders == 0
     assert node.stock == {"A": 90, "B": 20}
 
@@ -80,7 +80,7 @@ def test_satisfy_sales_infeasible():
         stock=Stock({"A": 100, "B": 20}),
         sales=Sales({1: [140]}),
     )
-    node.satisfy_sales(1)
+    node.satisfy_sales(1, loop=0)
     assert node.backorders == 40
     assert node.stock == {"A": 0, "B": 20}
 
@@ -92,7 +92,7 @@ def test_satisfy_sales_none():
         stock=Stock({"A": 100, "B": 20}),
         sales=Sales({2: [140]}),
     )
-    node.satisfy_sales(1)
+    node.satisfy_sales(1, loop=0)
     assert node.backorders == 0
     assert node.stock == {"A": 100, "B": 20}
 
@@ -104,7 +104,7 @@ def test_satisfy_sales_custom():
         def __init__(self):
             self.sales = iter(range(3))
 
-        def pop_sales(self, period: int) -> list[int]:
+        def get_sales(self, period: int) -> list[int]:
             try:
                 return [next(self.sales)]
             except StopIteration:
@@ -115,29 +115,29 @@ def test_satisfy_sales_custom():
         stock=Stock({"A": 100, "B": 20}),
         sales=CustomSales(),
     )
-    node.satisfy_sales(1)
+    node.satisfy_sales(1, loop=0)
     assert node.stock == {"A": 100, "B": 20}
-    node.satisfy_sales(20)
+    node.satisfy_sales(20, loop=0)
     assert node.stock == {"A": 99, "B": 20}
-    node.satisfy_sales(7)
+    node.satisfy_sales(7, loop=0)
     assert node.stock == {"A": 97, "B": 20}
 
     with pytest.raises(ValueError, match="Out of Sales"):
-        node.satisfy_sales(7)
+        node.satisfy_sales(7, loop=0)
 
 
 @patch("suppy.node.log_event")
 def test_satisfy_sales_metrics_all_satisfied(log_event_mock):
     """Test if the correct metrics are emitted"""
     node = Node("A", sales=Sales({1: [2, 2]}), stock=Stock({"A": 4}))
-    node.satisfy_sales(1)
+    node.satisfy_sales(1, loop=0)
 
     log_event_mock.assert_has_calls(
         [
-            call(node=node, event="sales", quantity=4, period=1),
-            call(node=node, event="order-lines", quantity=2, period=1),
-            call(node=node, event="sales-satisfied", quantity=4, period=1),
-            call(node=node, event="order-lines-satisfied", quantity=2, period=1),
+            call(node=node, event="sales", quantity=4, period=1, loop=0),
+            call(node=node, event="order-lines", quantity=2, period=1, loop=0),
+            call(node=node, event="sales-satisfied", quantity=4, period=1, loop=0),
+            call(node=node, event="order-lines-satisfied", quantity=2, period=1, loop=0),
         ],
     )
 
@@ -146,16 +146,16 @@ def test_satisfy_sales_metrics_all_satisfied(log_event_mock):
 def test_satisfy_sales_metrics_partial_satisfied(log_event_mock):
     """Test if the correct metrics are emitted"""
     node = Node("A", sales=Sales({1: [2, 2]}), stock=Stock({"A": 3}))
-    node.satisfy_sales(1)
+    node.satisfy_sales(1, loop=0)
 
     log_event_mock.assert_has_calls(
         [
-            call(node=node, event="sales", quantity=4, period=1),
-            call(node=node, event="order-lines", quantity=2, period=1),
-            call(node=node, event="sales-satisfied", quantity=3, period=1),
-            call(node=node, event="order-lines-satisfied", quantity=1, period=1),
-            call(node=node, event="sales-backordered", quantity=1, period=1),
-            call(node=node, event="order-lines-backordered", quantity=1, period=1),
+            call(node=node, event="sales", quantity=4, period=1, loop=0),
+            call(node=node, event="order-lines", quantity=2, period=1, loop=0),
+            call(node=node, event="sales-satisfied", quantity=3, period=1, loop=0),
+            call(node=node, event="order-lines-satisfied", quantity=1, period=1, loop=0),
+            call(node=node, event="sales-backordered", quantity=1, period=1, loop=0),
+            call(node=node, event="order-lines-backordered", quantity=1, period=1, loop=0),
         ],
     )
 

@@ -17,3 +17,4 @@ pylint-report.txt
 tests/debug.py
 junit.xml
 .ipynb_checkpoints/
+/notebooks/testing/

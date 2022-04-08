@@ -31,8 +31,8 @@ def test_setup_metrics_custom():
     local_stream = StringIO()
 
     m = metrics.setup_metrics(stream=local_stream)
-    metrics.log_event(period=1, node=Node("A"), event="test", quantity=42)
-    metrics.log_event(period=1, node=Node("A"), event="test", quantity=42)
+    metrics.log_event(period=1, loop=0, node=Node("A"), event="test", quantity=42)
+    metrics.log_event(period=1, loop=0, node=Node("A"), event="test", quantity=42)
     m.stop_metrics()
 
     local_stream.seek(0)

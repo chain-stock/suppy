@@ -143,6 +143,7 @@ def setup_metrics(
 
 def log_event(  # pylint: disable=too-many-arguments
     period: int,
+    loop: int,
     node: Node,
     event: str,
     quantity: float,
@@ -165,5 +166,6 @@ def log_event(  # pylint: disable=too-many-arguments
         "event": event,
         "quantity": quantity,
         "period": period,
+        "loop": loop,
     }
     logger.log(level, json.dumps(message), extra=extra)

@@ -39,7 +39,7 @@ class SalesStrategy(Protocol):
     """Interface for a Node's sales"""
 
     @abstractmethod
-    def pop_sales(self, period: int) -> list[int]:  # pragma: no cover
+    def get_sales(self, period: int) -> list[int]:  # pragma: no cover
         """Should return the order lines for the provided period"""
         ...
 

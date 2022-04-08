@@ -22,9 +22,9 @@ class Sales(UserDict[int, list[int]]):
     ):
         super().__init__(_dict, **kwargs)
 
-    def pop_sales(self, period: int) -> list[int]:
-        """Remove and return the order-lines for a specific period"""
-        return self.data.pop(period, [])
+    def get_sales(self, period: int) -> list[int]:
+        """Return the order-lines for a specific period"""
+        return self.data.get(period, [])
 
 
 @dataclass
@@ -154,22 +154,23 @@ class Node:  # pylint: disable=too-many-instance-attributes
             self.backorders -= feasible
             self.stock[self] -= feasible
 
-    def satisfy_sales(self, period: int) -> None:
+    def satisfy_sales(self, period: int, loop: int) -> None:
         """Satisfy sales for this period from stock
 
         adds backorders for any sales that could not be satisfied
         """
-        order_lines = self.sales.pop_sales(period)
+        order_lines = self.sales.get_sales(period)
         sales = sum(order_lines)
 
         if sales:
-            log_event(node=self, event="sales", quantity=sales, period=period)
+            log_event(node=self, event="sales", quantity=sales, period=period, loop=loop)
         if order_lines:
             log_event(
                 node=self,
                 event="order-lines",
                 quantity=len(order_lines),
                 period=period,
+                loop=loop,
             )
 
         feasible: int = min(self.stock[self], sales)
@@ -179,7 +180,7 @@ class Node:  # pylint: disable=too-many-instance-attributes
             self.stock[self] -= feasible
 
             log_event(
-                node=self, event="sales-satisfied", quantity=feasible, period=period
+                node=self, event="sales-satisfied", quantity=feasible, period=period, loop=loop
             )
             # find number of order-lines satisfied
             total = 0
@@ -195,17 +196,19 @@ class Node:  # pylint: disable=too-many-instance-attributes
                     event="order-lines-satisfied",
                     quantity=satisfied_order_lines,
                     period=period,
+                    loop=loop,
                 )
         if backorders:
             self.backorders += backorders
             log_event(
-                node=self, event="sales-backordered", quantity=backorders, period=period
+                node=self, event="sales-backordered", quantity=backorders, period=period, loop=loop
             )
             log_event(
                 node=self,
                 event="order-lines-backordered",
                 quantity=len(order_lines) - satisfied_order_lines,
                 period=period,
+                loop=loop,
             )
 
     def get_lead_time(self, period: int) -> int:
