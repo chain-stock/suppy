@@ -147,21 +147,37 @@ def test_simulator_validate_llc():
 
 
 def test_simulator_loop():
-    """Test if the loop functionality carries over the state from one loop to the next."""
+    """Test if the loop functionality correctly carries over the state from one loop to the next."""
     sc = SupplyChain(
-        nodes=[Node(
-            "A",
-            sales=Sales({1: [10]}),
-            stock=Stock({"A": 35}),
-            data={
-                "review_time": 1,
-                "reorder_level": 1,
-                "order_quantity": 1,
-            },
-        )]
+        nodes=[
+            Node(
+                "B",
+                sales=Sales({1: [10]}),
+                stock=Stock({"B": 35}),
+                data={
+                    "review_time": 1,
+                    "reorder_level": 1,
+                    "order_quantity": 1,
+                },
+            ),
+            Node(
+                "A",
+                stock=Stock({"A": 0}),
+                orders=Orders({"B": 50}),
+                pipeline=Pipeline([Receipt(sku_code="A", eta=10, quantity=200)]),
+                data={
+                    "review_time": 1,
+                    "reorder_level": 1,
+                    "order_quantity": 1,
+                },
+            )
+        ]
     )
     sim = Simulator(
         control_strategy=RSQ(sc), release_strategy=Fractional(), supply_chain=sc
     )
     sim.run(1, loops=3)
-    assert sc.nodes["A"].stock["A"] == 5
+
+    assert sc.nodes["B"].stock["B"] == 5
+    assert sc.nodes["A"].orders == Orders({"B": 50})
+    assert sc.nodes["A"].pipeline == Pipeline([Receipt(sku_code="A", eta=7, quantity=200)])

@@ -69,6 +69,7 @@ class MetricsExporter:
             '"timestamp": "%(asctime)s", '
             '"level": "%(levelname)s", '
             '"period": "%(period)s", '
+            '"loop": "%(loop)s", '
             '"node": "%(node)s", '
             '"event": "%(event)s", '
             '"quantity": "%(quantity)s", '
@@ -154,6 +155,7 @@ def log_event(  # pylint: disable=too-many-arguments
 
     Arguments:
         period: current period
+        loop: current loop
         node: Node emitting the event
         event: the event to output
         quantity: quantity of the event
