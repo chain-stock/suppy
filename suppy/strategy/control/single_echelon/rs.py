@@ -8,17 +8,16 @@ from suppy.node import Node, Orders
 from suppy.simulator import SupplyChain
 
 
-class RsqData(TypedDict):
+class RSData(TypedDict):
     """Typed dict with mandatory data fields when using the RSQ strategy"""
 
     review_time: int
-    reorder_level: int
-    order_quantity: int
+    order_up_to_level: int
 
 
 @dataclass
-class RSQ:
-    """RSQ implementation of the supply-chain control strategy
+class se_RS:
+    """RsQ implementation of the supply-chain control strategy
 
     Arguments:
         supply_chain(SupplyChain) SupplyChain instance to fetch the inventory levels from
@@ -30,20 +29,17 @@ class RSQ:
         """Return the quantity of `node` to order"""
         # Cast node.data to RsqData
         # This is only done to allow mypy to infer the types of `data` properly.
-        data = RsqData(
+        data = RSData(
             review_time=node.data["review_time"],
-            reorder_level=node.data["reorder_level"],
-            order_quantity=node.data["order_quantity"],
+            order_up_to_level=node.data["order_up_to_level"],
         )
         # Get the inventory level for the requested node
         inventory = self.supply_chain.inventory_assemblies_feasible(node)
 
         order_quantity = 0
-        if (period % data["review_time"] == 0) and (inventory < data["reorder_level"]):
-            order_quantity = (
-                ceil((data["reorder_level"] - inventory) / data["order_quantity"])
-                * data["order_quantity"]
-            )
+        if period % data["review_time"] == 0:
+            order_quantity = max(data["order_up_to_level"] - inventory, 0)
         orders = Orders()
         orders[node] = order_quantity
         return orders
+    

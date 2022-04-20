@@ -9,7 +9,7 @@ from suppy.supplychain import SupplyChain
 from suppy.leadtime import LeadTime
 from suppy.node import Node, Orders, Sales, Stock
 from suppy.pipeline import Pipeline, Receipt
-from suppy.strategy.control.rsq import RSQ
+from suppy.strategy.control.single_echelon.rsq import se_RsQ
 from suppy.strategy.release.fractional import Fractional
 
 
@@ -116,7 +116,7 @@ def test_simulate_period():
     )
 
     sim = Simulator(
-        control_strategy=RSQ(sc), release_strategy=Fractional(), supply_chain=sc
+        control_strategy=se_RsQ(sc), release_strategy=Fractional(), supply_chain=sc
     )
     sim.run(1)
 
@@ -134,7 +134,7 @@ def test_simulator_invalid_strategies():
     with pytest.raises(TypeError, match=r"control_strategy \(type\) is not compatible"):
         Simulator(sc, control_strategy=int, release_strategy=Fractional())  # type: ignore
     with pytest.raises(TypeError, match=r"release_strategy \(type\) is not compatible"):
-        Simulator(sc, control_strategy=RSQ(sc), release_strategy=int)  # type: ignore
+        Simulator(sc, control_strategy=se_RsQ(sc), release_strategy=int)  # type: ignore
 
 
 def test_simulator_validate_llc():
@@ -174,7 +174,7 @@ def test_simulator_loop():
         ]
     )
     sim = Simulator(
-        control_strategy=RSQ(sc), release_strategy=Fractional(), supply_chain=sc
+        control_strategy=se_RsQ(sc), release_strategy=Fractional(), supply_chain=sc
     )
     sim.run(1, loops=3)
 

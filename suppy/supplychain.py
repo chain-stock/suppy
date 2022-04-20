@@ -72,6 +72,10 @@ class SupplyChain:
             if edge not in destination.predecessors:
                 destination.predecessors.append(edge)
 
+            source = self.nodes[edge.source]
+            if edge not in source.successors:
+                source.successors.append(edge)
+
     def _check_nodes(self) -> None:
         """Add any Edge defined on a Node.predecessors to the list of edges"""
         for node in self.nodes.values():

@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 from suppy import Node
-from suppy.strategy import RSQ
+from suppy.strategy import RsQ
 
 
 def test_r_s_q_order():
@@ -14,7 +14,7 @@ def test_r_s_q_order():
     }
     t = 16
 
-    rsq = RSQ(supplychain)
+    rsq = RsQ(supplychain)
     node = Node("A", data=d)
 
     assert rsq.get_orders(node=node, period=t)[node] == 9
@@ -29,7 +29,7 @@ def test_r_s_q_no_order():
         "order_quantity": 9,
     }
 
-    rsq = RSQ(supplychain)
+    rsq = RsQ(supplychain)
     node = Node("A", data=d)
 
     t = 17

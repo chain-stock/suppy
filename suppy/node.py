@@ -44,7 +44,10 @@ class Node:  # pylint: disable=too-many-instance-attributes
             should adhere to the LeadTimeStrategy Protocol
         sales: An object capable of returning the sales order-lines for a specific period
             should adhere to the SalesStrategy Protocol
-        predecessors: A list Edges that together could produce/assemble this Node
+        predecessors: A list of Edges that together could produce/assemble this Node or form the
+            supplier(s) of this Node
+        successors: A list of Edges that describe production/assembly relations in which this Node
+            is a part, or distribution relations in which this Node is a supplier
         backorders: The number of outstanding backorders for this Node
             defaults to 0, provide this to initialize the simulation with existing backorders
         pipeline: A Pipeline instance for this Node
@@ -69,6 +72,7 @@ class Node:  # pylint: disable=too-many-instance-attributes
     lead_time: LeadTimeStrategy = field(default_factory=LeadTime)
     sales: SalesStrategy = field(default_factory=Sales)
     predecessors: list[Edge] = field(default_factory=list)
+    successors: list[Edge] = field(default_factory=list)
     backorders: int = 0
     pipeline: Pipeline = field(default_factory=Pipeline)
     stock: Stock = field(
