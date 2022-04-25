@@ -88,19 +88,19 @@ jobs:
         git fetch --prune --unshallow
 
     - name: Download junit report
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: python-junit
         path: tests/results
 
     - name: Download python coverage report
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: python-coverage
         path: tests/results
 
     - name: Download pylint report
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: pylint
         path: .
