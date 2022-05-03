@@ -12,5 +12,4 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "fix(deps): "
-      prefix-development: "chore(deps): "
+      prefix: "chore(deps): "
