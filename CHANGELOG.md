@@ -1,5 +1,13 @@
 # Changelog
 
+### [0.1.5](https://github.com/chain-stock/suppy/compare/v0.1.4...v0.1.5) (2022-05-03)
+
+
+### Bug Fixes
+
+* **deps:** bump tqdm from 4.62.3 to 4.63.0 ([#72](https://github.com/chain-stock/suppy/issues/72)) ([1f924d6](https://github.com/chain-stock/suppy/commit/1f924d6fa3878f4eab5af0c60f03b5d2f0fa878f))
+* **deps:** bump tqdm from 4.63.0 to 4.64.0 ([#90](https://github.com/chain-stock/suppy/issues/90)) ([5191ee7](https://github.com/chain-stock/suppy/commit/5191ee71c2fea31c55c9e882e938e509085451f6))
+
 ### [0.1.4](https://github.com/chain-stock/suppy/compare/v0.1.3...v0.1.4) (2022-02-08)
 
 
